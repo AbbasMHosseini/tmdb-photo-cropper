@@ -4,6 +4,7 @@ export type TmdbPersonPhotoCheck = {
   hasProfilePhoto: boolean;
   profileImageCount?: number;
   existingProfileUrl?: string;
+  checkedAt?: number;
   error?: string;
 };
 
@@ -21,6 +22,12 @@ export function setTmdbApiToken(token: string): void {
 
 export function clearTmdbApiToken(): void {
   localStorage.removeItem(STORAGE_KEY);
+}
+
+export function buildTmdbPersonUrl(personId: number, name?: string) {
+  const slug = toTmdbSlug(name || '');
+  const personPath = slug ? `${personId}-${slug}` : String(personId);
+  return `https://www.themoviedb.org/person/${personPath}`;
 }
 
 export async function checkTmdbPersonPhoto(input: string): Promise<TmdbPersonPhotoCheck> {
@@ -43,6 +50,7 @@ export async function checkTmdbPersonPhoto(input: string): Promise<TmdbPersonPho
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return {
       hasProfilePhoto: false,
+      checkedAt: Date.now(),
       error: `Failed to check TMDB: ${errorMessage}`,
     };
   }
@@ -97,6 +105,7 @@ async function fetchPersonDetails(personId: number, token: string): Promise<Tmdb
     hasProfilePhoto: profiles.length > 0 || Boolean(person.profile_path),
     profileImageCount: profiles.length,
     existingProfileUrl: firstProfilePath ? `${TMDB_IMAGE_BASE}${firstProfilePath}` : undefined,
+    checkedAt: Date.now(),
   };
 }
 
@@ -107,6 +116,7 @@ async function searchAndFetchPerson(name: string, token: string): Promise<TmdbPe
   if (results.length === 0) {
     return {
       hasProfilePhoto: false,
+      checkedAt: Date.now(),
       error: `No person found matching "${name}"`,
     };
   }
@@ -126,6 +136,7 @@ function getMockResponse(input: string): TmdbPersonPhotoCheck {
     name: titleCase(nameFromUrl || 'Unknown person'),
     hasProfilePhoto: false,
     profileImageCount: 0,
+    checkedAt: Date.now(),
     error: 'No TMDB API credential configured. Use the settings button to save one in this browser.',
   };
 }
@@ -137,4 +148,14 @@ function titleCase(value: string) {
     .filter(Boolean)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+}
+
+function toTmdbSlug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
