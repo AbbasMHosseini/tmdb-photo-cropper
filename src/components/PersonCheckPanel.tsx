@@ -143,7 +143,7 @@ export const PersonCheckPanel = forwardRef<PersonCheckPanelHandle, PersonCheckPa
                     title="Fetch fresh TMDB data now"
                   >
                     <RefreshCw className="h-3.5 w-3.5" />
-                    Fetch Now
+                    Fetch
                   </button>
                 </div>
               )}
