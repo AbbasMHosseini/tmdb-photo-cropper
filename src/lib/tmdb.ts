@@ -9,23 +9,23 @@ export type TmdbPersonPhotoCheck = {
 
 const TMDB_API_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w185';
+const STORAGE_KEY = 'tmdb_api_token';
 
 export function getTmdbApiToken(): string | null {
-  return localStorage.getItem('tmdb_api_token');
+  return localStorage.getItem(STORAGE_KEY);
 }
 
 export function setTmdbApiToken(token: string): void {
-  localStorage.setItem('tmdb_api_token', token);
+  localStorage.setItem(STORAGE_KEY, token.trim());
 }
 
 export function clearTmdbApiToken(): void {
-  localStorage.removeItem('tmdb_api_token');
+  localStorage.removeItem(STORAGE_KEY);
 }
 
 export async function checkTmdbPersonPhoto(input: string): Promise<TmdbPersonPhotoCheck> {
   const token = getTmdbApiToken();
 
-  // If no token, return mock response
   if (!token) {
     return getMockResponse(input);
   }
@@ -35,12 +35,10 @@ export async function checkTmdbPersonPhoto(input: string): Promise<TmdbPersonPho
     const personId = extractPersonIdFromUrl(cleanInput);
 
     if (personId) {
-      // Direct person ID lookup
       return await fetchPersonDetails(personId, token);
-    } else {
-      // Search by name
-      return await searchAndFetchPerson(cleanInput, token);
     }
+
+    return await searchAndFetchPerson(cleanInput, token);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return {
@@ -52,53 +50,59 @@ export async function checkTmdbPersonPhoto(input: string): Promise<TmdbPersonPho
 
 function extractPersonIdFromUrl(input: string): number | null {
   const match = input.match(/themoviedb\.org\/person\/(\d+)/);
-  if (match) {
-    return Number(match[1]);
-  }
-  return null;
+  return match ? Number(match[1]) : null;
 }
 
-async function fetchPersonDetails(personId: number, token: string): Promise<TmdbPersonPhotoCheck> {
-  const response = await fetch(
-    `${TMDB_API_BASE}/person/${personId}?api_key=${token}`
-  );
+function isReadAccessToken(token: string) {
+  return token.startsWith('eyJ') || token.length > 80;
+}
+
+async function tmdbFetch(path: string, token: string) {
+  const separator = path.includes('?') ? '&' : '?';
+  const url = isReadAccessToken(token)
+    ? `${TMDB_API_BASE}${path}`
+    : `${TMDB_API_BASE}${path}${separator}api_key=${encodeURIComponent(token)}`;
+
+  const response = await fetch(url, {
+    headers: isReadAccessToken(token)
+      ? {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json;charset=utf-8',
+        }
+      : undefined,
+  });
 
   if (!response.ok) {
     if (response.status === 401) {
-      clearTmdbApiToken();
-      throw new Error('Invalid API token. Please check your TMDB API key.');
+      throw new Error('Invalid TMDB credential. Check the token or API key.');
     }
-    throw new Error(`Person not found (${response.status})`);
+    throw new Error(`TMDB request failed (${response.status})`);
   }
 
-  const data = await response.json();
-  const profileImageCount = data.profile_path ? 1 : 0;
-  const existingProfileUrl = data.profile_path ? `${TMDB_IMAGE_BASE}${data.profile_path}` : undefined;
+  return response.json();
+}
+
+async function fetchPersonDetails(personId: number, token: string): Promise<TmdbPersonPhotoCheck> {
+  const [person, images] = await Promise.all([
+    tmdbFetch(`/person/${personId}`, token),
+    tmdbFetch(`/person/${personId}/images`, token),
+  ]);
+
+  const profiles = Array.isArray(images.profiles) ? images.profiles : [];
+  const firstProfilePath = profiles[0]?.file_path || person.profile_path;
 
   return {
-    personId: data.id,
-    name: data.name,
-    hasProfilePhoto: !!data.profile_path,
-    profileImageCount,
-    existingProfileUrl,
+    personId: person.id,
+    name: person.name,
+    hasProfilePhoto: profiles.length > 0 || Boolean(person.profile_path),
+    profileImageCount: profiles.length,
+    existingProfileUrl: firstProfilePath ? `${TMDB_IMAGE_BASE}${firstProfilePath}` : undefined,
   };
 }
 
 async function searchAndFetchPerson(name: string, token: string): Promise<TmdbPersonPhotoCheck> {
-  const searchResponse = await fetch(
-    `${TMDB_API_BASE}/search/person?query=${encodeURIComponent(name)}&api_key=${token}`
-  );
-
-  if (!searchResponse.ok) {
-    if (searchResponse.status === 401) {
-      clearTmdbApiToken();
-      throw new Error('Invalid API token. Please check your TMDB API key.');
-    }
-    throw new Error(`Search failed (${searchResponse.status})`);
-  }
-
-  const searchData = await searchResponse.json();
-  const results = searchData.results || [];
+  const searchData = await tmdbFetch(`/search/person?query=${encodeURIComponent(name)}`, token);
+  const results = Array.isArray(searchData.results) ? searchData.results : [];
 
   if (results.length === 0) {
     return {
@@ -107,18 +111,7 @@ async function searchAndFetchPerson(name: string, token: string): Promise<TmdbPe
     };
   }
 
-  // Use the first (best) result
-  const person = results[0];
-  const profileImageCount = person.profile_path ? 1 : 0;
-  const existingProfileUrl = person.profile_path ? `${TMDB_IMAGE_BASE}${person.profile_path}` : undefined;
-
-  return {
-    personId: person.id,
-    name: person.name,
-    hasProfilePhoto: !!person.profile_path,
-    profileImageCount,
-    existingProfileUrl,
-  };
+  return fetchPersonDetails(results[0].id, token);
 }
 
 function getMockResponse(input: string): TmdbPersonPhotoCheck {
@@ -129,11 +122,11 @@ function getMockResponse(input: string): TmdbPersonPhotoCheck {
     : cleanInput;
 
   return {
-    personId,
+    personId: personId || undefined,
     name: titleCase(nameFromUrl || 'Unknown person'),
     hasProfilePhoto: false,
     profileImageCount: 0,
-    error: 'No API token configured. Set your TMDB API token to check real person data.',
+    error: 'No TMDB API credential configured. Use the settings button to save one in this browser.',
   };
 }
 
