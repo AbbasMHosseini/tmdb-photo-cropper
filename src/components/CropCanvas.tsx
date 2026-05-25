@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type PointerEvent } from 'react';
+import { RotateCcw } from 'lucide-react';
 import { detectFace } from '../lib/faceDetection';
 import type { ExportSize } from '../lib/imageExport';
 
@@ -12,6 +13,7 @@ type CropCanvasProps = {
   zoom: number;
   onZoomChange: (zoom: number) => void;
   onReadyChange: (ready: boolean) => void;
+  onReset?: () => void;
 };
 
 type Pan = {
@@ -23,7 +25,7 @@ const PREVIEW_WIDTH = 420;
 const PREVIEW_HEIGHT = 630;
 
 export const CropCanvas = forwardRef<CropCanvasHandle, CropCanvasProps>(function CropCanvas(
-  { imageSource, exportSize, zoom, onZoomChange, onReadyChange },
+  { imageSource, exportSize, zoom, onZoomChange, onReadyChange, onReset },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -100,6 +102,12 @@ export const CropCanvas = forwardRef<CropCanvasHandle, CropCanvasProps>(function
     }
   }
 
+  function handleCanvasReset() {
+    setPan({ x: 0, y: 0 });
+    onReset?.();
+    scheduleDraw();
+  }
+
   function scheduleDraw() {
     if (animationRef.current) return;
     animationRef.current = window.requestAnimationFrame(() => {
@@ -158,7 +166,15 @@ export const CropCanvas = forwardRef<CropCanvasHandle, CropCanvasProps>(function
   }
 
   return (
-    <section className="rounded-3xl border border-slate-700/80 bg-slate-900/70 p-4 shadow-2xl shadow-slate-950/50">
+    <section className="relative rounded-3xl border border-slate-700/80 bg-slate-900/70 p-4 shadow-2xl shadow-slate-950/50">
+      <button
+        type="button"
+        onClick={handleCanvasReset}
+        className="absolute right-4 top-4 z-10 inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-950/90 px-3 py-2 text-sm font-semibold text-slate-200 backdrop-blur hover:border-slate-500"
+      >
+        <RotateCcw className="h-4 w-4" />
+        Reset
+      </button>
       <div className="mx-auto w-full max-w-[420px]">
         <canvas
           ref={canvasRef}
