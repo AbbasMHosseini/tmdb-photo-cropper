@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Film, Sparkles } from 'lucide-react';
+import { Film, Github } from 'lucide-react';
 import { ApiSettingsPanel } from './components/ApiSettingsPanel';
 import { CropCanvas, type CropCanvasHandle } from './components/CropCanvas';
 import { ExportControls } from './components/ExportControls';
@@ -57,10 +57,15 @@ export default function App() {
             <p className="text-xs text-slate-400">2:3 person profile image tool</p>
           </div>
         </div>
-        <div className="hidden items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 sm:flex">
-          <Sparkles className="h-3.5 w-3.5 text-sky-300" />
-          GitHub Pages
-        </div>
+        <a
+          href="https://github.com/AbbasMHosseini/tmdb-photo-cropper"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hidden items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-slate-600 hover:bg-slate-800 hover:text-slate-100 sm:flex"
+        >
+          <Github className="h-3.5 w-3.5 text-sky-300" />
+          Contribute
+        </a>
       </header>
 
       <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[360px_1fr]">
