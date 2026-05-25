@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type PointerEvent } from 'react';
 import { detectFace } from '../lib/faceDetection';
 import type { ExportSize } from '../lib/imageExport';
 
@@ -140,12 +140,12 @@ export const CropCanvas = forwardRef<CropCanvasHandle, CropCanvasProps>(function
     context.restore();
   }
 
-  function handlePointerDown(event: React.PointerEvent<HTMLCanvasElement>) {
+  function handlePointerDown(event: PointerEvent<HTMLCanvasElement>) {
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = { active: true, x: event.clientX, y: event.clientY };
   }
 
-  function handlePointerMove(event: React.PointerEvent<HTMLCanvasElement>) {
+  function handlePointerMove(event: PointerEvent<HTMLCanvasElement>) {
     if (!dragRef.current.active) return;
     const dx = event.clientX - dragRef.current.x;
     const dy = event.clientY - dragRef.current.y;
