@@ -1,10 +1,12 @@
-import { AlertTriangle, Check, Copy, ExternalLink, Search, UserCheck } from 'lucide-react';
+import { AlertTriangle, Check, Copy, ExternalLink, RefreshCw, Search, UserCheck } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { PhotoSearchPanel } from './PhotoSearchPanel';
+import type { PersonSearchHistoryItem } from '../lib/searchHistory';
 import { buildTmdbPersonUrl, checkTmdbPersonPhoto, type TmdbPersonPhotoCheck } from '../lib/tmdb';
 
 export type PersonCheckPanelHandle = {
   searchPerson: (name: string, askConfirmation?: boolean) => void;
+  loadCachedPerson: (item: PersonSearchHistoryItem) => void;
 };
 
 type PersonCheckPanelProps = {
@@ -21,6 +23,7 @@ export const PersonCheckPanel = forwardRef<PersonCheckPanelHandle, PersonCheckPa
   const [result, setResult] = useState<TmdbPersonPhotoCheck | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isCachedView, setIsCachedView] = useState(false);
 
   useImperativeHandle(ref, () => ({
     searchPerson: (name: string, askConfirmation = false) => {
@@ -33,12 +36,28 @@ export const PersonCheckPanel = forwardRef<PersonCheckPanelHandle, PersonCheckPa
       setInput(cleanName);
       void handleCheck(cleanName);
     },
+    loadCachedPerson: (item: PersonSearchHistoryItem) => {
+      const cachedResult: TmdbPersonPhotoCheck = {
+        personId: item.personId,
+        name: item.name,
+        hasProfilePhoto: item.hasProfilePhoto,
+        profileImageCount: item.profileImageCount,
+        existingProfileUrl: item.thumbnailUrl,
+        checkedAt: item.searchedAt,
+      };
+      setInput(item.name);
+      setResult(cachedResult);
+      setCopied(false);
+      setIsCachedView(true);
+      onPersonResolved(item.name);
+    },
   }));
 
   async function handleCheck(nextInput = input) {
     if (!nextInput.trim()) return;
     setIsChecking(true);
     setCopied(false);
+    setIsCachedView(false);
     const nextResult = await checkTmdbPersonPhoto(nextInput);
     setResult(nextResult);
     onPersonResolved(nextResult.name || nextInput.trim());
@@ -117,10 +136,19 @@ export const PersonCheckPanel = forwardRef<PersonCheckPanelHandle, PersonCheckPa
                     <ExternalLink className="h-3.5 w-3.5" />
                     Open
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCheck(result.personId ? buildTmdbPersonUrl(result.personId, result.name) : result.name || input)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-sky-800/70 bg-sky-950/20 px-2 py-1 text-sky-200 hover:border-sky-600/80 hover:bg-sky-950/40"
+                    title="Fetch fresh TMDB data now"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Fetch Now
+                  </button>
                 </div>
               )}
               <span>Profile images: {result.profileImageCount ?? 0}</span>
-              {result.checkedAt && <span>Last checked: {new Date(result.checkedAt).toLocaleString()}</span>}
+              {result.checkedAt && <span>{isCachedView ? 'Cached checked' : 'Last checked'}: {new Date(result.checkedAt).toLocaleString()}</span>}
               <span>TMDB API may take some time to update after a new upload.</span>
               {result.error && <span className="line-clamp-2 text-amber-300">{result.error}</span>}
             </div>
