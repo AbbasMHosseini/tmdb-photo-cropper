@@ -32,36 +32,34 @@ function BingIcon() {
 
 export function PhotoSearchPanel({ personName }: PhotoSearchPanelProps) {
   const searchName = (personName || 'person').trim();
-  const queryLabel = `"${searchName} photos"`;
 
   return (
-    <div className="rounded-xl border border-slate-700/80 bg-slate-950/50 p-3">
-      <div className="mb-2">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Find photos</div>
-        <p className="mt-1 text-xs leading-5 text-slate-400">{queryLabel}</p>
-      </div>
+    <div className="flex h-28 min-w-[170px] flex-col justify-center gap-2 rounded-xl border border-slate-700/80 bg-slate-950/50 p-2">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Find photos</div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => openImageSearch('google', searchName)}
-          className="flex items-center justify-center gap-2 rounded-lg bg-slate-100 px-2 py-2 text-xs font-semibold text-slate-950 transition hover:bg-white"
-        >
+      <button
+        type="button"
+        onClick={() => openImageSearch('google', searchName)}
+        className="flex h-9 items-center justify-between gap-2 rounded-lg bg-slate-100 px-2 text-xs font-semibold text-slate-950 transition hover:bg-white"
+      >
+        <span className="flex items-center gap-2">
           <GoogleIcon />
-          <span>Google</span>
-          <ExternalLink className="h-3 w-3" />
-        </button>
+          Google
+        </span>
+        <ExternalLink className="h-3 w-3" />
+      </button>
 
-        <button
-          type="button"
-          onClick={() => openImageSearch('bing', searchName)}
-          className="flex items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-950 px-2 py-2 text-xs font-semibold text-slate-200 transition hover:border-slate-500"
-        >
+      <button
+        type="button"
+        onClick={() => openImageSearch('bing', searchName)}
+        className="flex h-9 items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-950 px-2 text-xs font-semibold text-slate-200 transition hover:border-slate-500"
+      >
+        <span className="flex items-center gap-2">
           <BingIcon />
-          <span>Bing</span>
-          <ExternalLink className="h-3 w-3" />
-        </button>
-      </div>
+          Bing
+        </span>
+        <ExternalLink className="h-3 w-3" />
+      </button>
     </div>
   );
 }
