@@ -1,22 +1,26 @@
 import { AlertTriangle, Search, UserCheck } from 'lucide-react';
 import { useState } from 'react';
+import { PhotoSearchPanel } from './PhotoSearchPanel';
 import { checkTmdbPersonPhoto, type TmdbPersonPhotoCheck } from '../lib/tmdb';
 
 type PersonCheckPanelProps = {
   onPersonResolved: (name: string) => void;
+  onCheckComplete?: (result: TmdbPersonPhotoCheck, fallbackName: string) => void;
+  initialInput?: string;
 };
 
-export function PersonCheckPanel({ onPersonResolved }: PersonCheckPanelProps) {
-  const [input, setInput] = useState('');
+export function PersonCheckPanel({ onPersonResolved, onCheckComplete, initialInput = '' }: PersonCheckPanelProps) {
+  const [input, setInput] = useState(initialInput);
   const [result, setResult] = useState<TmdbPersonPhotoCheck | null>(null);
   const [isChecking, setIsChecking] = useState(false);
 
-  async function handleCheck() {
-    if (!input.trim()) return;
+  async function handleCheck(nextInput = input) {
+    if (!nextInput.trim()) return;
     setIsChecking(true);
-    const nextResult = await checkTmdbPersonPhoto(input);
+    const nextResult = await checkTmdbPersonPhoto(nextInput);
     setResult(nextResult);
-    onPersonResolved(nextResult.name || input.trim());
+    onPersonResolved(nextResult.name || nextInput.trim());
+    onCheckComplete?.(nextResult, nextInput.trim());
     setIsChecking(false);
   }
 
@@ -33,7 +37,7 @@ export function PersonCheckPanel({ onPersonResolved }: PersonCheckPanelProps) {
         />
         <button
           type="button"
-          onClick={handleCheck}
+          onClick={() => handleCheck()}
           className="inline-flex items-center gap-2 rounded-xl bg-sky-400 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-sky-300"
         >
           <Search className="h-4 w-4" />
@@ -70,6 +74,8 @@ export function PersonCheckPanel({ onPersonResolved }: PersonCheckPanelProps) {
                 className="h-28 w-auto rounded-xl border border-slate-700 object-cover"
               />
             )}
+
+            {!result.hasProfilePhoto && <PhotoSearchPanel personName={result.name || input.trim()} />}
           </div>
         )}
       </div>
