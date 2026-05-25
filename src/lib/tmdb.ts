@@ -25,7 +25,7 @@ export async function checkTmdbPersonPhoto(input: string): Promise<TmdbPersonPho
 
 function titleCase(value: string) {
   return value
-    .replaceAll('-', ' ')
+    .replace(/-/g, ' ')
     .split(' ')
     .filter(Boolean)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
