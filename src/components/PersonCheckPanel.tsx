@@ -1,7 +1,11 @@
 import { AlertTriangle, Search, UserCheck } from 'lucide-react';
-import { useState } from 'react';
+import { forwardRef, useImperativeHandle, useState } from 'react';
 import { PhotoSearchPanel } from './PhotoSearchPanel';
 import { checkTmdbPersonPhoto, type TmdbPersonPhotoCheck } from '../lib/tmdb';
+
+export type PersonCheckPanelHandle = {
+  searchPerson: (name: string, askConfirmation?: boolean) => void;
+};
 
 type PersonCheckPanelProps = {
   onPersonResolved: (name: string) => void;
@@ -9,10 +13,26 @@ type PersonCheckPanelProps = {
   initialInput?: string;
 };
 
-export function PersonCheckPanel({ onPersonResolved, onCheckComplete, initialInput = '' }: PersonCheckPanelProps) {
+export const PersonCheckPanel = forwardRef<PersonCheckPanelHandle, PersonCheckPanelProps>(function PersonCheckPanel(
+  { onPersonResolved, onCheckComplete, initialInput = '' },
+  ref,
+) {
   const [input, setInput] = useState(initialInput);
   const [result, setResult] = useState<TmdbPersonPhotoCheck | null>(null);
   const [isChecking, setIsChecking] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    searchPerson: (name: string, askConfirmation = false) => {
+      const cleanName = name.trim();
+      if (!cleanName) return;
+      if (askConfirmation) {
+        const confirmed = window.confirm(`Search TMDB again for "${cleanName}"?`);
+        if (!confirmed) return;
+      }
+      setInput(cleanName);
+      void handleCheck(cleanName);
+    },
+  }));
 
   async function handleCheck(nextInput = input) {
     if (!nextInput.trim()) return;
@@ -81,4 +101,4 @@ export function PersonCheckPanel({ onPersonResolved, onCheckComplete, initialInp
       </div>
     </section>
   );
-}
+});
