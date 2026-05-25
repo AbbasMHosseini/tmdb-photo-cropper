@@ -19,6 +19,10 @@ It supports:
 
 TMDB checking and face detection are mocked for now. The structure is ready for real implementation later.
 
+## Online version
+
+This project is configured for GitHub Pages deployment through GitHub Actions.
+
 ## Run locally
 
 ```bash
