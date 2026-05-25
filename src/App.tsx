@@ -7,7 +7,7 @@ import { ImageDropzone } from './components/ImageDropzone';
 import { PersonCheckPanel, type PersonCheckPanelHandle } from './components/PersonCheckPanel';
 import { SearchHistoryPanel } from './components/SearchHistoryPanel';
 import { downloadCanvasAsJpg, EXPORT_SIZES, safeFilename, type ExportSize } from './lib/imageExport';
-import { clearPersonSearchHistory, hasPersonInSearchHistory, loadPersonSearchHistory, savePersonSearchToHistory, type PersonSearchHistoryItem } from './lib/searchHistory';
+import { clearPersonSearchHistory, loadPersonSearchHistory, savePersonSearchToHistory, type PersonSearchHistoryItem } from './lib/searchHistory';
 import type { TmdbPersonPhotoCheck } from './lib/tmdb';
 
 export default function App() {
@@ -40,8 +40,7 @@ export default function App() {
   }
 
   function handleHistorySelect(item: PersonSearchHistoryItem) {
-    const shouldAsk = Boolean(tmdbPersonId || hasPersonInSearchHistory(item.name, item.personId));
-    personCheckRef.current?.searchPerson(item.name, shouldAsk);
+    personCheckRef.current?.searchPerson(item.name, false);
   }
 
   return (
