@@ -1,10 +1,11 @@
-import { Download, RotateCcw } from 'lucide-react';
+import { Download, ExternalLink, Minus, Plus, RotateCcw } from 'lucide-react';
 import { EXPORT_SIZES, type ExportSize } from '../lib/imageExport';
 
 type ExportControlsProps = {
   zoom: number;
   selectedSize: ExportSize;
   canExport: boolean;
+  tmdbPersonId?: number;
   onZoomChange: (zoom: number) => void;
   onSizeChange: (size: ExportSize) => void;
   onReset: () => void;
@@ -15,19 +16,35 @@ export function ExportControls({
   zoom,
   selectedSize,
   canExport,
+  tmdbPersonId,
   onZoomChange,
   onSizeChange,
   onReset,
   onExport,
 }: ExportControlsProps) {
+  function nudgeZoom(delta: number) {
+    const nextZoom = Math.min(3, Math.max(1, Number((zoom + delta).toFixed(2))));
+    onZoomChange(nextZoom);
+  }
+
+  function openTmdbMediaPage() {
+    if (!tmdbPersonId) return;
+    window.open(`https://www.themoviedb.org/person/${tmdbPersonId}/images`, '_blank', 'noopener,noreferrer');
+  }
+
   return (
-    <section className="rounded-2xl border border-slate-700/80 bg-slate-900/70 p-4 shadow-2xl shadow-slate-950/40">
-      <div className="grid gap-4 md:grid-cols-[1fr_auto_auto_auto] md:items-center">
-        <label className="block">
-          <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-            <span>Zoom</span>
-            <span>{zoom.toFixed(2)}x</span>
-          </div>
+    <section className="rounded-2xl border border-slate-700/80 bg-slate-900/70 p-3 shadow-2xl shadow-slate-950/40">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex min-w-[220px] flex-1 items-center gap-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Zoom</span>
+          <button
+            type="button"
+            onClick={() => nudgeZoom(-0.05)}
+            className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-slate-200 hover:border-slate-500"
+            aria-label="Zoom out"
+          >
+            <Minus className="h-4 w-4" />
+          </button>
           <input
             type="range"
             min="1"
@@ -35,9 +52,18 @@ export function ExportControls({
             step="0.01"
             value={zoom}
             onChange={(event) => onZoomChange(Number(event.target.value))}
-            className="w-full accent-sky-400"
+            className="h-2 max-w-40 flex-1 accent-sky-400"
           />
-        </label>
+          <button
+            type="button"
+            onClick={() => nudgeZoom(0.05)}
+            className="rounded-lg border border-slate-700 bg-slate-950 p-2 text-slate-200 hover:border-slate-500"
+            aria-label="Zoom in"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <span className="w-12 text-right text-xs font-semibold text-slate-400">{zoom.toFixed(2)}x</span>
+        </div>
 
         <select
           value={selectedSize.label}
@@ -61,6 +87,16 @@ export function ExportControls({
         >
           <RotateCcw className="h-4 w-4" />
           Reset
+        </button>
+
+        <button
+          type="button"
+          disabled={!tmdbPersonId}
+          onClick={openTmdbMediaPage}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ExternalLink className="h-4 w-4" />
+          TMDB Media
         </button>
 
         <button
