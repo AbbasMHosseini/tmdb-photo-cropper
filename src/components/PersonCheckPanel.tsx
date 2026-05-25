@@ -99,7 +99,7 @@ export const PersonCheckPanel = forwardRef<PersonCheckPanelHandle, PersonCheckPa
         </button>
       </div>
 
-      <div className="mt-3 h-[300px] overflow-hidden rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-3 text-sm text-slate-300">
+      <div className="mt-3 h-[330px] overflow-hidden rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-3 text-sm text-slate-300">
         {isChecking && <span>Checking TMDB...</span>}
         {!isChecking && !result && <span>Use the settings button to save a TMDB credential, then check a person.</span>}
         {!isChecking && result && (
