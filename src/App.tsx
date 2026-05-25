@@ -4,6 +4,7 @@ import { ApiSettingsPanel } from './components/ApiSettingsPanel';
 import { CropCanvas, type CropCanvasHandle } from './components/CropCanvas';
 import { ExportControls } from './components/ExportControls';
 import { ImageDropzone } from './components/ImageDropzone';
+import { PhotoSearchPanel } from './components/PhotoSearchPanel';
 import { PersonCheckPanel } from './components/PersonCheckPanel';
 import { downloadCanvasAsJpg, EXPORT_SIZES, safeFilename, type ExportSize } from './lib/imageExport';
 
@@ -56,6 +57,7 @@ export default function App() {
               setCanExport(false);
             }}
           />
+          {imageSource && <PhotoSearchPanel personName={personName} />}
         </aside>
 
         <section className="space-y-5">
