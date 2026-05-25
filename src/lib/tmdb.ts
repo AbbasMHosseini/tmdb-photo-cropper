@@ -40,9 +40,14 @@ export async function checkTmdbPersonPhoto(input: string): Promise<TmdbPersonPho
   try {
     const cleanInput = input.trim();
     const personId = extractPersonIdFromUrl(cleanInput);
+    const imdbId = extractImdbPersonId(cleanInput);
 
     if (personId) {
       return await fetchPersonDetails(personId, token);
+    }
+
+    if (imdbId) {
+      return await findPersonByImdbId(imdbId, token);
     }
 
     return await searchAndFetchPerson(cleanInput, token);
@@ -59,6 +64,11 @@ export async function checkTmdbPersonPhoto(input: string): Promise<TmdbPersonPho
 function extractPersonIdFromUrl(input: string): number | null {
   const match = input.match(/themoviedb\.org\/person\/(\d+)/);
   return match ? Number(match[1]) : null;
+}
+
+function extractImdbPersonId(input: string): string | null {
+  const match = input.match(/(?:imdb\.com\/name\/)?(nm\d{7,10})/i);
+  return match ? match[1] : null;
 }
 
 function isReadAccessToken(token: string) {
@@ -109,6 +119,21 @@ async function fetchPersonDetails(personId: number, token: string): Promise<Tmdb
   };
 }
 
+async function findPersonByImdbId(imdbId: string, token: string): Promise<TmdbPersonPhotoCheck> {
+  const findData = await tmdbFetch(`/find/${imdbId}?external_source=imdb_id`, token);
+  const personResults = Array.isArray(findData.person_results) ? findData.person_results : [];
+
+  if (personResults.length === 0) {
+    return {
+      hasProfilePhoto: false,
+      checkedAt: Date.now(),
+      error: `No TMDB person found for IMDb ID "${imdbId}"`,
+    };
+  }
+
+  return fetchPersonDetails(personResults[0].id, token);
+}
+
 async function searchAndFetchPerson(name: string, token: string): Promise<TmdbPersonPhotoCheck> {
   const searchData = await tmdbFetch(`/search/person?query=${encodeURIComponent(name)}`, token);
   const results = Array.isArray(searchData.results) ? searchData.results : [];
@@ -127,13 +152,14 @@ async function searchAndFetchPerson(name: string, token: string): Promise<TmdbPe
 function getMockResponse(input: string): TmdbPersonPhotoCheck {
   const cleanInput = input.trim();
   const personId = extractPersonIdFromUrl(cleanInput);
+  const imdbId = extractImdbPersonId(cleanInput);
   const nameFromUrl = personId
     ? cleanInput.split('/person/')[1]?.split('-').slice(1).join(' ')
     : cleanInput;
 
   return {
     personId: personId || undefined,
-    name: titleCase(nameFromUrl || 'Unknown person'),
+    name: titleCase(imdbId || nameFromUrl || 'Unknown person'),
     hasProfilePhoto: false,
     profileImageCount: 0,
     checkedAt: Date.now(),
