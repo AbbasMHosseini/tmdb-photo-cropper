@@ -27,28 +27,28 @@ export function SearchHistoryPanel({ items, onSelect, onClear }: SearchHistoryPa
         </button>
       </div>
 
-      <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
         {items.map((item) => (
           <button
             key={`${item.id}-${item.searchedAt}`}
             type="button"
             onClick={() => onSelect(item)}
-            className="flex w-full items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-2 text-left hover:border-slate-600"
+            className="flex w-[180px] items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/70 p-2 text-left hover:border-slate-600"
           >
             {item.thumbnailUrl ? (
               <img
                 src={item.thumbnailUrl}
                 alt={`${item.name} TMDB thumbnail`}
-                className="h-12 w-9 rounded-lg object-cover"
+                className="h-11 w-8 flex-none rounded-lg object-cover"
               />
             ) : (
-              <div className="flex h-12 w-9 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-lg">
+              <div className="flex h-11 w-8 flex-none items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-base">
                 👤
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-medium text-slate-100">{item.name}</div>
-              <div className="mt-0.5 text-xs text-slate-500">
+              <div className="truncate text-xs font-semibold text-slate-100">{item.name}</div>
+              <div className="mt-0.5 truncate text-[11px] text-slate-500">
                 {item.hasProfilePhoto ? `${item.profileImageCount} photo${item.profileImageCount === 1 ? '' : 's'}` : 'No photo'}
               </div>
             </div>
