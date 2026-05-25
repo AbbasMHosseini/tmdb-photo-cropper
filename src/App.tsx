@@ -4,7 +4,7 @@ import { ApiSettingsPanel } from './components/ApiSettingsPanel';
 import { CropCanvas, type CropCanvasHandle } from './components/CropCanvas';
 import { ExportControls } from './components/ExportControls';
 import { ImageDropzone } from './components/ImageDropzone';
-import { PersonCheckPanel } from './components/PersonCheckPanel';
+import { PersonCheckPanel, type PersonCheckPanelHandle } from './components/PersonCheckPanel';
 import { SearchHistoryPanel } from './components/SearchHistoryPanel';
 import { downloadCanvasAsJpg, EXPORT_SIZES, safeFilename, type ExportSize } from './lib/imageExport';
 import { clearPersonSearchHistory, loadPersonSearchHistory, savePersonSearchToHistory, type PersonSearchHistoryItem } from './lib/searchHistory';
@@ -12,6 +12,7 @@ import type { TmdbPersonPhotoCheck } from './lib/tmdb';
 
 export default function App() {
   const cropCanvasRef = useRef<CropCanvasHandle | null>(null);
+  const personCheckRef = useRef<PersonCheckPanelHandle | null>(null);
   const [imageSource, setImageSource] = useState<string | null>(null);
   const [personName, setPersonName] = useState('person');
   const [tmdbPersonId, setTmdbPersonId] = useState<number | undefined>();
@@ -60,6 +61,7 @@ export default function App() {
         <aside className="space-y-5">
           <PersonCheckPanel
             key={tokenRefreshKey}
+            ref={personCheckRef}
             onPersonResolved={setPersonName}
             onCheckComplete={handleCheckComplete}
           />
@@ -80,6 +82,7 @@ export default function App() {
             zoom={zoom}
             onZoomChange={setZoom}
             onReadyChange={setCanExport}
+            onReset={handleReset}
           />
           <ExportControls
             zoom={zoom}
@@ -88,7 +91,6 @@ export default function App() {
             tmdbPersonId={tmdbPersonId}
             onZoomChange={setZoom}
             onSizeChange={setSelectedSize}
-            onReset={handleReset}
             onExport={handleExport}
           />
         </section>
@@ -98,8 +100,7 @@ export default function App() {
         <SearchHistoryPanel
           items={history}
           onSelect={(item) => {
-            setPersonName(item.name);
-            setTmdbPersonId(item.personId);
+            personCheckRef.current?.searchPerson(item.name, true);
           }}
           onClear={() => setHistory(clearPersonSearchHistory())}
         />
