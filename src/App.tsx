@@ -40,7 +40,9 @@ export default function App() {
   }
 
   function handleHistorySelect(item: PersonSearchHistoryItem) {
-    personCheckRef.current?.searchPerson(item.name, false);
+    setPersonName(item.name);
+    setTmdbPersonId(item.personId);
+    personCheckRef.current?.loadCachedPerson(item);
   }
 
   return (
