@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Film, Sparkles } from 'lucide-react';
+import { ApiSettingsPanel } from './components/ApiSettingsPanel';
 import { CropCanvas, type CropCanvasHandle } from './components/CropCanvas';
 import { ExportControls } from './components/ExportControls';
 import { ImageDropzone } from './components/ImageDropzone';
@@ -14,6 +15,7 @@ export default function App() {
   const [zoom, setZoom] = useState(1);
   const [selectedSize, setSelectedSize] = useState<ExportSize>(EXPORT_SIZES[1]);
   const [canExport, setCanExport] = useState(false);
+  const [tokenRefreshKey, setTokenRefreshKey] = useState(0);
 
   function handleExport() {
     const canvas = cropCanvasRef.current?.renderToCanvas();
@@ -40,13 +42,13 @@ export default function App() {
         </div>
         <div className="hidden items-center gap-2 rounded-full border border-slate-800 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 sm:flex">
           <Sparkles className="h-3.5 w-3.5 text-sky-300" />
-          MVP mock mode
+          GitHub Pages
         </div>
       </header>
 
       <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[360px_1fr]">
         <aside className="space-y-5">
-          <PersonCheckPanel onPersonResolved={setPersonName} />
+          <PersonCheckPanel key={tokenRefreshKey} onPersonResolved={setPersonName} />
           <ImageDropzone
             onImageSelected={(source, fileName) => {
               setImageSource(source);
@@ -76,6 +78,8 @@ export default function App() {
           />
         </section>
       </div>
+
+      <ApiSettingsPanel onTokenChange={() => setTokenRefreshKey((current) => current + 1)} />
     </main>
   );
 }
