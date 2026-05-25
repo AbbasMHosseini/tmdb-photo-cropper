@@ -4,9 +4,11 @@ import { ApiSettingsPanel } from './components/ApiSettingsPanel';
 import { CropCanvas, type CropCanvasHandle } from './components/CropCanvas';
 import { ExportControls } from './components/ExportControls';
 import { ImageDropzone } from './components/ImageDropzone';
-import { PhotoSearchPanel } from './components/PhotoSearchPanel';
 import { PersonCheckPanel } from './components/PersonCheckPanel';
+import { SearchHistoryPanel } from './components/SearchHistoryPanel';
 import { downloadCanvasAsJpg, EXPORT_SIZES, safeFilename, type ExportSize } from './lib/imageExport';
+import { clearPersonSearchHistory, loadPersonSearchHistory, savePersonSearchToHistory, type PersonSearchHistoryItem } from './lib/searchHistory';
+import type { TmdbPersonPhotoCheck } from './lib/tmdb';
 
 export default function App() {
   const cropCanvasRef = useRef<CropCanvasHandle | null>(null);
@@ -17,6 +19,7 @@ export default function App() {
   const [selectedSize, setSelectedSize] = useState<ExportSize>(EXPORT_SIZES[1]);
   const [canExport, setCanExport] = useState(false);
   const [tokenRefreshKey, setTokenRefreshKey] = useState(0);
+  const [history, setHistory] = useState<PersonSearchHistoryItem[]>(() => loadPersonSearchHistory());
 
   function handleExport() {
     const canvas = cropCanvasRef.current?.renderToCanvas();
@@ -27,6 +30,10 @@ export default function App() {
 
   function handleReset() {
     setZoom(1);
+  }
+
+  function handleCheckComplete(result: TmdbPersonPhotoCheck, fallbackName: string) {
+    setHistory(savePersonSearchToHistory(result, fallbackName));
   }
 
   return (
@@ -49,7 +56,16 @@ export default function App() {
 
       <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[360px_1fr]">
         <aside className="space-y-5">
-          <PersonCheckPanel key={tokenRefreshKey} onPersonResolved={setPersonName} />
+          <PersonCheckPanel
+            key={tokenRefreshKey}
+            onPersonResolved={setPersonName}
+            onCheckComplete={handleCheckComplete}
+          />
+          <SearchHistoryPanel
+            items={history}
+            onSelect={(item) => setPersonName(item.name)}
+            onClear={() => setHistory(clearPersonSearchHistory())}
+          />
           <ImageDropzone
             onImageSelected={(source, fileName) => {
               setImageSource(source);
@@ -57,7 +73,6 @@ export default function App() {
               setCanExport(false);
             }}
           />
-          {imageSource && <PhotoSearchPanel personName={personName} />}
         </aside>
 
         <section className="space-y-5">
