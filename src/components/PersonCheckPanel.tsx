@@ -121,7 +121,7 @@ export const PersonCheckPanel = forwardRef<PersonCheckPanelHandle, PersonCheckPa
               )}
               <span>Profile images: {result.profileImageCount ?? 0}</span>
               {result.checkedAt && <span>Last checked: {new Date(result.checkedAt).toLocaleString()}</span>}
-              {result.hasProfilePhoto && <span>Photo upload date: not available from the TMDB API</span>}
+              <span>TMDB API may take some time to update after a new upload.</span>
               {result.error && <span className="line-clamp-2 text-amber-300">{result.error}</span>}
             </div>
 
