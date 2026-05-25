@@ -6,6 +6,7 @@ type ExportControlsProps = {
   selectedSize: ExportSize;
   canExport: boolean;
   tmdbPersonId?: number;
+  tmdbPersonName?: string;
   onZoomChange: (zoom: number) => void;
   onSizeChange: (size: ExportSize) => void;
   onExport: () => void;
@@ -16,6 +17,7 @@ export function ExportControls({
   selectedSize,
   canExport,
   tmdbPersonId,
+  tmdbPersonName,
   onZoomChange,
   onSizeChange,
   onExport,
@@ -27,7 +29,9 @@ export function ExportControls({
 
   function openTmdbMediaPage() {
     if (!tmdbPersonId) return;
-    window.open(`https://www.themoviedb.org/person/${tmdbPersonId}/images`, '_blank', 'noopener,noreferrer');
+    const slug = toTmdbSlug(tmdbPersonName || '');
+    const personPath = slug ? `${tmdbPersonId}-${slug}` : String(tmdbPersonId);
+    window.open(`https://www.themoviedb.org/person/${personPath}/images/profiles`, '_blank', 'noopener,noreferrer');
   }
 
   return (
@@ -100,4 +104,14 @@ export function ExportControls({
       </div>
     </section>
   );
+}
+
+function toTmdbSlug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
