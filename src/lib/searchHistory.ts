@@ -33,7 +33,7 @@ export function savePersonSearchToHistory(result: TmdbPersonPhotoCheck, fallback
     thumbnailUrl: result.existingProfileUrl,
     hasProfilePhoto: result.hasProfilePhoto,
     profileImageCount: result.profileImageCount ?? 0,
-    searchedAt: Date.now(),
+    searchedAt: result.checkedAt || Date.now(),
   };
 
   const existing = loadPersonSearchHistory().filter((item) => item.id !== nextItem.id);
@@ -45,4 +45,12 @@ export function savePersonSearchToHistory(result: TmdbPersonPhotoCheck, fallback
 export function clearPersonSearchHistory(): PersonSearchHistoryItem[] {
   localStorage.removeItem(HISTORY_KEY);
   return [];
+}
+
+export function hasPersonInSearchHistory(name: string, personId?: number) {
+  const normalizedName = name.trim().toLowerCase();
+  return loadPersonSearchHistory().some((item) => {
+    if (personId && item.personId === personId) return true;
+    return item.name.trim().toLowerCase() === normalizedName;
+  });
 }
