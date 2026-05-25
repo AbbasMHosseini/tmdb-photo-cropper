@@ -66,7 +66,7 @@ export const CropCanvas = forwardRef<CropCanvasHandle, CropCanvasProps>(function
       scheduleDraw();
     };
     image.onerror = () => {
-      setError('Could not load this image. Try uploading the file instead.');
+      setError('This image URL could not be loaded here. Many websites block direct browser loading with CORS. Download the image and upload the file instead.');
       imageRef.current = null;
       onReadyChange(false);
       scheduleDraw();
@@ -171,7 +171,7 @@ export const CropCanvas = forwardRef<CropCanvasHandle, CropCanvasProps>(function
           className="aspect-[2/3] w-full touch-none cursor-grab rounded-2xl border border-slate-700 bg-slate-950 shadow-inner active:cursor-grabbing"
         />
       </div>
-      {error && <p className="mt-3 text-center text-sm text-rose-300">{error}</p>}
+      {error && <p className="mt-3 rounded-xl border border-amber-800 bg-amber-950/30 px-3 py-2 text-center text-sm text-amber-200">{error}</p>}
     </section>
   );
 });
