@@ -89,6 +89,7 @@ export default function App() {
             selectedSize={selectedSize}
             canExport={canExport}
             tmdbPersonId={tmdbPersonId}
+            tmdbPersonName={personName}
             onZoomChange={setZoom}
             onSizeChange={setSelectedSize}
             onExport={handleExport}
