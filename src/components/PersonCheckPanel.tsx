@@ -1,7 +1,7 @@
-import { AlertTriangle, Search, UserCheck } from 'lucide-react';
+import { AlertTriangle, Check, Copy, ExternalLink, Search, UserCheck } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { PhotoSearchPanel } from './PhotoSearchPanel';
-import { checkTmdbPersonPhoto, type TmdbPersonPhotoCheck } from '../lib/tmdb';
+import { buildTmdbPersonUrl, checkTmdbPersonPhoto, type TmdbPersonPhotoCheck } from '../lib/tmdb';
 
 export type PersonCheckPanelHandle = {
   searchPerson: (name: string, askConfirmation?: boolean) => void;
@@ -20,6 +20,7 @@ export const PersonCheckPanel = forwardRef<PersonCheckPanelHandle, PersonCheckPa
   const [input, setInput] = useState(initialInput);
   const [result, setResult] = useState<TmdbPersonPhotoCheck | null>(null);
   const [isChecking, setIsChecking] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useImperativeHandle(ref, () => ({
     searchPerson: (name: string, askConfirmation = false) => {
@@ -37,11 +38,25 @@ export const PersonCheckPanel = forwardRef<PersonCheckPanelHandle, PersonCheckPa
   async function handleCheck(nextInput = input) {
     if (!nextInput.trim()) return;
     setIsChecking(true);
+    setCopied(false);
     const nextResult = await checkTmdbPersonPhoto(nextInput);
     setResult(nextResult);
     onPersonResolved(nextResult.name || nextInput.trim());
     onCheckComplete?.(nextResult, nextInput.trim());
     setIsChecking(false);
+  }
+
+  async function copyTmdbUrl() {
+    if (!result?.personId) return;
+    const url = buildTmdbPersonUrl(result.personId, result.name);
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  }
+
+  function openTmdbPersonPage() {
+    if (!result?.personId) return;
+    window.open(buildTmdbPersonUrl(result.personId, result.name), '_blank', 'noopener,noreferrer');
   }
 
   return (
@@ -81,9 +96,31 @@ export const PersonCheckPanel = forwardRef<PersonCheckPanelHandle, PersonCheckPa
               </span>
             </div>
 
-            <div className="grid gap-1 text-xs text-slate-400">
-              {result.personId && <span>TMDB ID: {result.personId}</span>}
+            <div className="grid gap-2 text-xs text-slate-400">
+              {result.personId && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={copyTmdbUrl}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-slate-300 hover:border-slate-500 hover:text-slate-100"
+                    title="Copy TMDB person link"
+                  >
+                    {copied ? <Check className="h-3.5 w-3.5 text-emerald-300" /> : <Copy className="h-3.5 w-3.5" />}
+                    TMDB ID: {result.personId}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openTmdbPersonPage}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-slate-300 hover:border-slate-500 hover:text-slate-100"
+                    title="Open TMDB person page"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Open
+                  </button>
+                </div>
+              )}
               <span>Profile images: {result.profileImageCount ?? 0}</span>
+              {result.checkedAt && <span>Checked: {new Date(result.checkedAt).toLocaleString()}</span>}
               {result.error && <span className="text-amber-300">{result.error}</span>}
             </div>
 
@@ -95,7 +132,7 @@ export const PersonCheckPanel = forwardRef<PersonCheckPanelHandle, PersonCheckPa
               />
             )}
 
-            {!result.hasProfilePhoto && <PhotoSearchPanel personName={result.name || input.trim()} />}
+            <PhotoSearchPanel personName={result.name || input.trim()} />
           </div>
         )}
       </div>
