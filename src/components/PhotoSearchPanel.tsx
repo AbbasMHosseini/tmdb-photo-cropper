@@ -16,7 +16,7 @@ function openImageSearch(engine: 'google' | 'bing', personName: string) {
 
 function GoogleIcon() {
   return (
-    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-sm font-bold text-slate-950">
+    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-sm font-bold text-slate-950 shadow-sm">
       G
     </span>
   );
@@ -24,7 +24,7 @@ function GoogleIcon() {
 
 function BingIcon() {
   return (
-    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-400 text-sm font-bold text-slate-950">
+    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-sky-300 text-sm font-bold text-slate-950 shadow-sm">
       b
     </span>
   );
@@ -40,25 +40,25 @@ export function PhotoSearchPanel({ personName }: PhotoSearchPanelProps) {
       <button
         type="button"
         onClick={() => openImageSearch('google', searchName)}
-        className="flex h-9 items-center justify-between gap-2 rounded-lg bg-slate-100 px-2 text-xs font-semibold text-slate-950 transition hover:bg-white"
+        className="flex h-9 items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-900/80 px-2 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-slate-800"
       >
         <span className="flex items-center gap-2">
           <GoogleIcon />
           Google
         </span>
-        <ExternalLink className="h-3 w-3" />
+        <ExternalLink className="h-3 w-3 text-slate-400" />
       </button>
 
       <button
         type="button"
         onClick={() => openImageSearch('bing', searchName)}
-        className="flex h-9 items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-950 px-2 text-xs font-semibold text-slate-200 transition hover:border-slate-500"
+        className="flex h-9 items-center justify-between gap-2 rounded-lg border border-sky-800/70 bg-sky-950/20 px-2 text-xs font-semibold text-slate-200 transition hover:border-sky-600/80 hover:bg-sky-950/40"
       >
         <span className="flex items-center gap-2">
           <BingIcon />
           Bing
         </span>
-        <ExternalLink className="h-3 w-3" />
+        <ExternalLink className="h-3 w-3 text-slate-400" />
       </button>
     </div>
   );
