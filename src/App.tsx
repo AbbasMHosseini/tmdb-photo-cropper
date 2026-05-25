@@ -14,6 +14,7 @@ export default function App() {
   const cropCanvasRef = useRef<CropCanvasHandle | null>(null);
   const [imageSource, setImageSource] = useState<string | null>(null);
   const [personName, setPersonName] = useState('person');
+  const [tmdbPersonId, setTmdbPersonId] = useState<number | undefined>();
   const [sourceFileName, setSourceFileName] = useState<string | undefined>();
   const [zoom, setZoom] = useState(1);
   const [selectedSize, setSelectedSize] = useState<ExportSize>(EXPORT_SIZES[1]);
@@ -33,6 +34,7 @@ export default function App() {
   }
 
   function handleCheckComplete(result: TmdbPersonPhotoCheck, fallbackName: string) {
+    setTmdbPersonId(result.personId);
     setHistory(savePersonSearchToHistory(result, fallbackName));
   }
 
@@ -61,11 +63,6 @@ export default function App() {
             onPersonResolved={setPersonName}
             onCheckComplete={handleCheckComplete}
           />
-          <SearchHistoryPanel
-            items={history}
-            onSelect={(item) => setPersonName(item.name)}
-            onClear={() => setHistory(clearPersonSearchHistory())}
-          />
           <ImageDropzone
             onImageSelected={(source, fileName) => {
               setImageSource(source);
@@ -88,12 +85,24 @@ export default function App() {
             zoom={zoom}
             selectedSize={selectedSize}
             canExport={canExport}
+            tmdbPersonId={tmdbPersonId}
             onZoomChange={setZoom}
             onSizeChange={setSelectedSize}
             onReset={handleReset}
             onExport={handleExport}
           />
         </section>
+      </div>
+
+      <div className="mx-auto mt-5 max-w-6xl">
+        <SearchHistoryPanel
+          items={history}
+          onSelect={(item) => {
+            setPersonName(item.name);
+            setTmdbPersonId(item.personId);
+          }}
+          onClear={() => setHistory(clearPersonSearchHistory())}
+        />
       </div>
 
       <ApiSettingsPanel onTokenChange={() => setTokenRefreshKey((current) => current + 1)} />
