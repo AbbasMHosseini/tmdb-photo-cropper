@@ -67,7 +67,7 @@ export const PersonCheckPanel = forwardRef<PersonCheckPanelHandle, PersonCheckPa
           value={input}
           onChange={(event) => setInput(event.target.value)}
           onKeyDown={(event) => event.key === 'Enter' && handleCheck()}
-          placeholder="Name or TMDB person URL"
+          placeholder="Name, TMDB URL, or IMDb name URL"
           className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-sky-400"
         />
         <button
@@ -80,23 +80,23 @@ export const PersonCheckPanel = forwardRef<PersonCheckPanelHandle, PersonCheckPa
         </button>
       </div>
 
-      <div className="mt-3 h-[430px] overflow-hidden rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-3 text-sm text-slate-300">
+      <div className="mt-3 h-[300px] overflow-hidden rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-3 text-sm text-slate-300">
         {isChecking && <span>Checking TMDB...</span>}
         {!isChecking && !result && <span>Use the settings button to save a TMDB credential, then check a person.</span>}
         {!isChecking && result && (
-          <div className="flex h-full flex-col gap-3">
+          <div className="flex h-full flex-col gap-2">
             <div className="flex items-start gap-2">
               {result.error ? (
                 <AlertTriangle className="mt-1 h-4 w-4 flex-none text-amber-300" />
               ) : (
                 <UserCheck className="mt-1 h-4 w-4 flex-none text-emerald-300" />
               )}
-              <span className="leading-6">
+              <span className="line-clamp-2 leading-6">
                 {result.name || 'Unknown person'}: {result.hasProfilePhoto ? 'already has a TMDB photo' : 'no TMDB photo found'}
               </span>
             </div>
 
-            <div className="grid gap-2 text-xs text-slate-400">
+            <div className="grid gap-1.5 text-xs text-slate-400">
               {result.personId && (
                 <div className="flex flex-wrap items-center gap-2">
                   <button
@@ -121,18 +121,18 @@ export const PersonCheckPanel = forwardRef<PersonCheckPanelHandle, PersonCheckPa
               )}
               <span>Profile images: {result.profileImageCount ?? 0}</span>
               {result.checkedAt && <span>Checked: {new Date(result.checkedAt).toLocaleString()}</span>}
-              {result.error && <span className="text-amber-300">{result.error}</span>}
+              {result.error && <span className="line-clamp-2 text-amber-300">{result.error}</span>}
             </div>
 
-            <div className="mt-auto grid min-h-32 grid-cols-[112px_1fr] items-end gap-3">
+            <div className="mt-auto grid grid-cols-[86px_1fr] items-end gap-3">
               {result.existingProfileUrl ? (
                 <img
                   src={result.existingProfileUrl}
                   alt={result.name ? `${result.name} existing TMDB profile` : 'Existing TMDB profile'}
-                  className="h-28 w-20 rounded-xl border border-slate-700 object-cover"
+                  className="h-24 w-[68px] rounded-xl border border-slate-700 object-cover"
                 />
               ) : (
-                <div className="flex h-28 w-20 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-2xl">
+                <div className="flex h-24 w-[68px] items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-2xl">
                   👤
                 </div>
               )}
