@@ -76,18 +76,25 @@ function isReadAccessToken(token: string) {
 }
 
 async function tmdbFetch(path: string, token: string) {
+  const cacheBuster = `_=${Date.now()}`;
   const separator = path.includes('?') ? '&' : '?';
+  const pathWithCacheBuster = `${path}${separator}${cacheBuster}`;
+  const authSeparator = pathWithCacheBuster.includes('?') ? '&' : '?';
   const url = isReadAccessToken(token)
-    ? `${TMDB_API_BASE}${path}`
-    : `${TMDB_API_BASE}${path}${separator}api_key=${encodeURIComponent(token)}`;
+    ? `${TMDB_API_BASE}${pathWithCacheBuster}`
+    : `${TMDB_API_BASE}${pathWithCacheBuster}${authSeparator}api_key=${encodeURIComponent(token)}`;
 
   const response = await fetch(url, {
+    cache: 'no-store',
     headers: isReadAccessToken(token)
       ? {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json;charset=utf-8',
+          'Cache-Control': 'no-cache',
         }
-      : undefined,
+      : {
+          'Cache-Control': 'no-cache',
+        },
   });
 
   if (!response.ok) {
@@ -107,13 +114,14 @@ async function fetchPersonDetails(personId: number, token: string): Promise<Tmdb
   ]);
 
   const profiles = Array.isArray(images.profiles) ? images.profiles : [];
-  const firstProfilePath = profiles[0]?.file_path || person.profile_path;
+  const firstProfilePath = person.profile_path || profiles[0]?.file_path;
+  const profileCount = Math.max(profiles.length, person.profile_path ? 1 : 0);
 
   return {
     personId: person.id,
     name: person.name,
-    hasProfilePhoto: profiles.length > 0 || Boolean(person.profile_path),
-    profileImageCount: profiles.length,
+    hasProfilePhoto: profileCount > 0,
+    profileImageCount: profileCount,
     existingProfileUrl: firstProfilePath ? `${TMDB_IMAGE_BASE}${firstProfilePath}` : undefined,
     checkedAt: Date.now(),
   };
