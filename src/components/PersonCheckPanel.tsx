@@ -1,4 +1,4 @@
-import { Search, UserCheck } from 'lucide-react';
+import { AlertTriangle, Search, UserCheck } from 'lucide-react';
 import { useState } from 'react';
 import { checkTmdbPersonPhoto, type TmdbPersonPhotoCheck } from '../lib/tmdb';
 
@@ -42,14 +42,34 @@ export function PersonCheckPanel({ onPersonResolved }: PersonCheckPanelProps) {
       </div>
 
       <div className="mt-3 min-h-9 rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2 text-sm text-slate-300">
-        {isChecking && <span>Checking TMDB mock...</span>}
-        {!isChecking && !result && <span>First version uses a mock TMDB check.</span>}
+        {isChecking && <span>Checking TMDB...</span>}
+        {!isChecking && !result && <span>Use the settings button to save a TMDB credential, then check a person.</span>}
         {!isChecking && result && (
-          <div className="flex items-center gap-2">
-            <UserCheck className="h-4 w-4 text-emerald-300" />
-            <span>
-              {result.name}: {result.hasProfilePhoto ? 'already has a TMDB photo' : 'no TMDB photo found'}
-            </span>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              {result.error ? (
+                <AlertTriangle className="h-4 w-4 text-amber-300" />
+              ) : (
+                <UserCheck className="h-4 w-4 text-emerald-300" />
+              )}
+              <span>
+                {result.name || 'Unknown person'}: {result.hasProfilePhoto ? 'already has a TMDB photo' : 'no TMDB photo found'}
+              </span>
+            </div>
+
+            <div className="grid gap-1 text-xs text-slate-400">
+              {result.personId && <span>TMDB ID: {result.personId}</span>}
+              <span>Profile images: {result.profileImageCount ?? 0}</span>
+              {result.error && <span className="text-amber-300">{result.error}</span>}
+            </div>
+
+            {result.existingProfileUrl && (
+              <img
+                src={result.existingProfileUrl}
+                alt={result.name ? `${result.name} existing TMDB profile` : 'Existing TMDB profile'}
+                className="h-28 w-auto rounded-xl border border-slate-700 object-cover"
+              />
+            )}
           </div>
         )}
       </div>
