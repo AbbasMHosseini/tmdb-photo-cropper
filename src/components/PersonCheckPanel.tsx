@@ -80,18 +80,18 @@ export const PersonCheckPanel = forwardRef<PersonCheckPanelHandle, PersonCheckPa
         </button>
       </div>
 
-      <div className="mt-3 min-h-9 rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2 text-sm text-slate-300">
+      <div className="mt-3 h-[430px] overflow-hidden rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-3 text-sm text-slate-300">
         {isChecking && <span>Checking TMDB...</span>}
         {!isChecking && !result && <span>Use the settings button to save a TMDB credential, then check a person.</span>}
         {!isChecking && result && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
+          <div className="flex h-full flex-col gap-3">
+            <div className="flex items-start gap-2">
               {result.error ? (
-                <AlertTriangle className="h-4 w-4 text-amber-300" />
+                <AlertTriangle className="mt-1 h-4 w-4 flex-none text-amber-300" />
               ) : (
-                <UserCheck className="h-4 w-4 text-emerald-300" />
+                <UserCheck className="mt-1 h-4 w-4 flex-none text-emerald-300" />
               )}
-              <span>
+              <span className="leading-6">
                 {result.name || 'Unknown person'}: {result.hasProfilePhoto ? 'already has a TMDB photo' : 'no TMDB photo found'}
               </span>
             </div>
@@ -124,15 +124,21 @@ export const PersonCheckPanel = forwardRef<PersonCheckPanelHandle, PersonCheckPa
               {result.error && <span className="text-amber-300">{result.error}</span>}
             </div>
 
-            {result.existingProfileUrl && (
-              <img
-                src={result.existingProfileUrl}
-                alt={result.name ? `${result.name} existing TMDB profile` : 'Existing TMDB profile'}
-                className="h-28 w-auto rounded-xl border border-slate-700 object-cover"
-              />
-            )}
+            <div className="mt-auto grid min-h-32 grid-cols-[112px_1fr] items-end gap-3">
+              {result.existingProfileUrl ? (
+                <img
+                  src={result.existingProfileUrl}
+                  alt={result.name ? `${result.name} existing TMDB profile` : 'Existing TMDB profile'}
+                  className="h-28 w-20 rounded-xl border border-slate-700 object-cover"
+                />
+              ) : (
+                <div className="flex h-28 w-20 items-center justify-center rounded-xl border border-slate-700 bg-slate-900 text-2xl">
+                  👤
+                </div>
+              )}
 
-            <PhotoSearchPanel personName={result.name || input.trim()} />
+              <PhotoSearchPanel personName={result.name || input.trim()} />
+            </div>
           </div>
         )}
       </div>
