@@ -1,6 +1,6 @@
-import { Settings, Eye, EyeOff, Trash2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { getTmdbApiToken, setTmdbApiToken, clearTmdbApiToken } from '../lib/tmdb';
+import { Eye, EyeOff, Settings, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { clearTmdbApiToken, getTmdbApiToken, setTmdbApiToken } from '../lib/tmdb';
 
 type ApiSettingsPanelProps = {
   onTokenChange?: () => void;
@@ -25,7 +25,7 @@ export function ApiSettingsPanel({ onTokenChange }: ApiSettingsPanelProps) {
       setToken('');
       setIsSaved(true);
       onTokenChange?.();
-      setTimeout(() => setIsSaved(false), 2000);
+      window.setTimeout(() => setIsSaved(false), 2000);
     }
   }
 
@@ -41,14 +41,15 @@ export function ApiSettingsPanel({ onTokenChange }: ApiSettingsPanelProps) {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 rounded-full bg-slate-800 p-3 text-slate-300 hover:bg-slate-700 hover:text-slate-100 transition"
+        className="fixed bottom-4 right-4 z-40 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-200 shadow-2xl shadow-slate-950/50 transition hover:border-slate-500 hover:bg-slate-800 hover:text-slate-100"
         title="API Settings"
       >
-        <Settings className="h-5 w-5" />
+        <Settings className="h-4 w-4" />
+        API
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
             <h2 className="mb-4 text-lg font-semibold text-slate-100">TMDB API Settings</h2>
 
@@ -59,24 +60,24 @@ export function ApiSettingsPanel({ onTokenChange }: ApiSettingsPanelProps) {
                   href="https://www.themoviedb.org/settings/api"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sky-400 hover:text-sky-300 underline"
+                  className="text-sky-400 underline hover:text-sky-300"
                 >
-                  TMDB Read Access Token
+                  TMDB API key or Read Access Token
                 </a>
-                . Your token is stored only in your browser's localStorage.
+                . Your credential is stored only in this browser.
               </p>
             </div>
 
             <div className="mb-4">
-              <label className="mb-2 block text-xs font-semibold uppercase text-slate-400">Token</label>
+              <label className="mb-2 block text-xs font-semibold uppercase text-slate-400">Token or API key</label>
               <div className="relative">
                 <input
                   type={showToken ? 'text' : 'password'}
                   value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                  placeholder="Paste your TMDB API Read Access Token"
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 pr-10 px-3 py-2.5 text-sm text-slate-100 placeholder-slate-500 outline-none focus:border-sky-400"
+                  onChange={(event) => setToken(event.target.value)}
+                  onKeyDown={(event) => event.key === 'Enter' && handleSave()}
+                  placeholder="Paste your TMDB API credential"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 pr-10 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-sky-400"
                 />
                 <button
                   type="button"
@@ -89,14 +90,14 @@ export function ApiSettingsPanel({ onTokenChange }: ApiSettingsPanelProps) {
             </div>
 
             {hasToken && (
-              <div className="mb-4 rounded-lg bg-emerald-950/30 border border-emerald-800 px-3 py-2 text-sm text-emerald-300">
-                ✓ API token is configured
+              <div className="mb-4 rounded-lg border border-emerald-800 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-300">
+                API credential is configured
               </div>
             )}
 
             {isSaved && (
-              <div className="mb-4 rounded-lg bg-sky-950/30 border border-sky-800 px-3 py-2 text-sm text-sky-300">
-                ✓ Token saved successfully
+              <div className="mb-4 rounded-lg border border-sky-800 bg-sky-950/30 px-3 py-2 text-sm text-sky-300">
+                Saved successfully
               </div>
             )}
 
@@ -107,14 +108,14 @@ export function ApiSettingsPanel({ onTokenChange }: ApiSettingsPanelProps) {
                 disabled={!token.trim()}
                 className="flex-1 rounded-lg bg-sky-400 py-2 text-sm font-semibold text-slate-950 hover:bg-sky-300 disabled:bg-slate-700 disabled:text-slate-500"
               >
-                Save Token
+                Save
               </button>
               {hasToken && (
                 <button
                   type="button"
                   onClick={handleClear}
                   className="rounded-lg border border-slate-700 bg-slate-950 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
-                  title="Clear saved token"
+                  title="Clear saved credential"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
