@@ -27,22 +27,22 @@ export function SearchHistoryPanel({ items, onSelect, onClear }: SearchHistoryPa
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
         {items.map((item) => (
           <button
             key={`${item.id}-${item.searchedAt}`}
             type="button"
             onClick={() => onSelect(item)}
-            className="flex w-[180px] items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/70 p-2 text-left hover:border-slate-600"
+            className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/70 p-2 text-left hover:border-slate-600"
           >
             {item.thumbnailUrl ? (
               <img
                 src={item.thumbnailUrl}
                 alt={`${item.name} TMDB thumbnail`}
-                className="h-11 w-8 flex-none rounded-lg object-cover"
+                className="h-10 w-8 flex-none rounded-lg object-cover"
               />
             ) : (
-              <div className="flex h-11 w-8 flex-none items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-base">
+              <div className="flex h-10 w-8 flex-none items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-base">
                 👤
               </div>
             )}
