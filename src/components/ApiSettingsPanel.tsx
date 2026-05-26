@@ -1,4 +1,4 @@
-import { Eye, EyeOff, Settings, Trash2 } from 'lucide-react';
+import { Check, Copy, Eye, EyeOff, Settings, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { clearTmdbApiToken, getTmdbApiToken, setTmdbApiToken } from '../lib/tmdb';
 
@@ -12,6 +12,7 @@ export function ApiSettingsPanel({ onTokenChange }: ApiSettingsPanelProps) {
   const [showToken, setShowToken] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [hasToken, setHasToken] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
     const savedToken = getTmdbApiToken();
@@ -24,6 +25,7 @@ export function ApiSettingsPanel({ onTokenChange }: ApiSettingsPanelProps) {
       setHasToken(true);
       setToken('');
       setIsSaved(true);
+      setIsCopied(false);
       onTokenChange?.();
       window.setTimeout(() => setIsSaved(false), 2000);
     }
@@ -33,7 +35,16 @@ export function ApiSettingsPanel({ onTokenChange }: ApiSettingsPanelProps) {
     clearTmdbApiToken();
     setHasToken(false);
     setToken('');
+    setIsCopied(false);
     onTokenChange?.();
+  }
+
+  async function handleCopySavedToken() {
+    const savedToken = getTmdbApiToken();
+    if (!savedToken) return;
+    await navigator.clipboard.writeText(savedToken);
+    setIsCopied(true);
+    window.setTimeout(() => setIsCopied(false), 1500);
   }
 
   return (
@@ -41,7 +52,7 @@ export function ApiSettingsPanel({ onTokenChange }: ApiSettingsPanelProps) {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 z-40 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-200 shadow-2xl shadow-slate-950/50 transition hover:border-slate-500 hover:bg-slate-800 hover:text-slate-100"
+        className="fixed bottom-4 right-4 z-40 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-200 shadow-2xl shadow-slate-950/50 transition hover:border-slate-500 hover:bg-slate-800 hover:text-slate-100 sm:bottom-4 sm:right-4"
         title="API Settings"
       >
         <Settings className="h-4 w-4" />
@@ -90,8 +101,17 @@ export function ApiSettingsPanel({ onTokenChange }: ApiSettingsPanelProps) {
             </div>
 
             {hasToken && (
-              <div className="mb-4 rounded-lg border border-emerald-800 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-300">
-                API credential is configured
+              <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-emerald-800 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-300">
+                <span>API credential is configured</span>
+                <button
+                  type="button"
+                  onClick={handleCopySavedToken}
+                  className="inline-flex items-center gap-1 rounded-md border border-emerald-800 bg-emerald-950/40 px-2 py-1 text-xs font-semibold text-emerald-200 hover:bg-emerald-900/50"
+                  title="Copy saved API credential"
+                >
+                  {isCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {isCopied ? 'Copied' : 'Copy'}
+                </button>
               </div>
             )}
 
