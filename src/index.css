@@ -9,6 +9,12 @@
   color: #e2e8f0;
 }
 
+:root[data-theme='light'] {
+  color-scheme: light;
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -18,6 +24,49 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background: radial-gradient(circle at top, #1e293b 0, #020617 45%, #020617 100%);
+}
+
+:root[data-theme='light'] body {
+  background: radial-gradient(circle at top, #f8fafc 0, #e2e8f0 52%, #cbd5e1 100%);
+}
+
+:root[data-theme='light'] main,
+:root[data-theme='light'] header,
+:root[data-theme='light'] section,
+:root[data-theme='light'] aside,
+:root[data-theme='light'] div,
+:root[data-theme='light'] p,
+:root[data-theme='light'] span,
+:root[data-theme='light'] label,
+:root[data-theme='light'] h1,
+:root[data-theme='light'] h2 {
+  color: inherit;
+}
+
+:root[data-theme='light'] .bg-slate-950\/70,
+:root[data-theme='light'] .bg-slate-900\/70,
+:root[data-theme='light'] .bg-slate-900,
+:root[data-theme='light'] .bg-slate-950\/50 {
+  background-color: rgba(255, 255, 255, 0.78);
+}
+
+:root[data-theme='light'] .bg-slate-950,
+:root[data-theme='light'] .bg-slate-900\/80 {
+  background-color: #f8fafc;
+}
+
+:root[data-theme='light'] .text-slate-100,
+:root[data-theme='light'] .text-slate-200,
+:root[data-theme='light'] .text-slate-300,
+:root[data-theme='light'] .text-slate-400,
+:root[data-theme='light'] .text-slate-500 {
+  color: #334155;
+}
+
+:root[data-theme='light'] .border-slate-800,
+:root[data-theme='light'] .border-slate-700,
+:root[data-theme='light'] .border-slate-600 {
+  border-color: #cbd5e1;
 }
 
 button,
