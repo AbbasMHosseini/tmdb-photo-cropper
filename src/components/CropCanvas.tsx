@@ -89,7 +89,7 @@ export const CropCanvas = forwardRef<CropCanvasHandle, CropCanvasProps>(function
       outputCanvas.width = exportSize.width;
       outputCanvas.height = exportSize.height;
       const safePan = clampPan(panRef.current, imageRef.current, zoomRef.current);
-      drawImageToCanvas(outputCanvas, imageRef.current, safePan, zoomRef.current);
+      drawImageToCanvas(outputCanvas, imageRef.current, safePan, zoomRef.current, false);
       return outputCanvas;
     },
   }));
@@ -138,12 +138,17 @@ export const CropCanvas = forwardRef<CropCanvasHandle, CropCanvasProps>(function
       }
 
       const safePan = clampPan(panRef.current, image, zoomRef.current);
-      drawImageToCanvas(canvas, image, safePan, zoomRef.current);
-      drawPreviewFrame(canvas);
+      drawImageToCanvas(canvas, image, safePan, zoomRef.current, true);
     });
   }
 
-  function drawImageToCanvas(canvas: HTMLCanvasElement, image: HTMLImageElement, currentPan: Pan, currentZoom: number) {
+  function drawImageToCanvas(
+    canvas: HTMLCanvasElement,
+    image: HTMLImageElement,
+    currentPan: Pan,
+    currentZoom: number,
+    withFrame: boolean,
+  ) {
     const context = canvas.getContext('2d');
     if (!context) return;
     context.save();
@@ -156,18 +161,19 @@ export const CropCanvas = forwardRef<CropCanvasHandle, CropCanvasProps>(function
     context.scale(scale, scale);
     context.drawImage(image, -image.naturalWidth / 2, -image.naturalHeight / 2);
     context.restore();
+    if (withFrame) drawPreviewFrame(canvas);
   }
 
   function drawPreviewFrame(canvas: HTMLCanvasElement) {
     const context = canvas.getContext('2d');
     if (!context) return;
     context.save();
-    context.strokeStyle = '#38bdf8';
-    context.lineWidth = 2;
-    context.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
-    context.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+    context.strokeStyle = 'rgba(125, 211, 252, 0.85)';
+    context.lineWidth = 1.5;
+    context.strokeRect(1.5, 1.5, canvas.width - 3, canvas.height - 3);
+    context.strokeStyle = 'rgba(15, 23, 42, 0.5)';
     context.lineWidth = 1;
-    context.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
+    context.strokeRect(5.5, 5.5, canvas.width - 11, canvas.height - 11);
     context.restore();
   }
 
@@ -193,7 +199,7 @@ export const CropCanvas = forwardRef<CropCanvasHandle, CropCanvasProps>(function
   }
 
   return (
-    <section className="relative rounded-3xl border border-slate-600 bg-slate-900/70 p-4 shadow-2xl shadow-slate-950/50">
+    <section className="relative rounded-3xl border border-slate-700 bg-slate-900/70 p-4 shadow-2xl shadow-slate-950/40">
       <button
         type="button"
         onClick={handleCanvasReset}
@@ -202,17 +208,19 @@ export const CropCanvas = forwardRef<CropCanvasHandle, CropCanvasProps>(function
         <RotateCcw className="h-4 w-4" />
         Reset
       </button>
-      <div className="mx-auto w-full max-w-[420px] rounded-2xl border-2 border-sky-400/80 bg-slate-950 p-[2px] shadow-[0_0_0_1px_rgba(255,255,255,0.16)]">
-        <canvas
-          ref={canvasRef}
-          width={PREVIEW_WIDTH}
-          height={PREVIEW_HEIGHT}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          className="aspect-[2/3] w-full touch-none cursor-grab rounded-xl bg-slate-950 shadow-inner active:cursor-grabbing"
-        />
+      <div className="mx-auto w-full max-w-[420px] rounded-[22px] border border-sky-300/60 bg-slate-950 p-[3px] shadow-[0_0_0_1px_rgba(15,23,42,0.9),0_18px_50px_rgba(2,6,23,0.35)]">
+        <div className="overflow-hidden rounded-[18px] bg-slate-950">
+          <canvas
+            ref={canvasRef}
+            width={PREVIEW_WIDTH}
+            height={PREVIEW_HEIGHT}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            className="block aspect-[2/3] w-full touch-none cursor-grab bg-slate-950 active:cursor-grabbing"
+          />
+        </div>
       </div>
       {error && <p className="mt-3 rounded-xl border border-amber-800 bg-amber-950/30 px-3 py-2 text-center text-sm text-amber-200">{error}</p>}
     </section>
