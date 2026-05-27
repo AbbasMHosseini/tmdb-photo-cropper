@@ -30,6 +30,13 @@ export function buildTmdbPersonUrl(personId: number, name?: string) {
   return `https://www.themoviedb.org/person/${personPath}`;
 }
 
+export function buildTmdbPersonInput(personPath: string) {
+  const cleanPath = personPath.trim().replace(/^\/+|\/+$/g, '');
+  const match = cleanPath.match(/^(\d+)(?:-[a-z0-9-]+)?$/i);
+  if (!match) return cleanPath;
+  return `https://www.themoviedb.org/person/${cleanPath}`;
+}
+
 export async function checkTmdbPersonPhoto(input: string): Promise<TmdbPersonPhotoCheck> {
   const token = getTmdbApiToken();
 
@@ -39,7 +46,7 @@ export async function checkTmdbPersonPhoto(input: string): Promise<TmdbPersonPho
 
   try {
     const cleanInput = input.trim();
-    const personId = extractPersonIdFromUrl(cleanInput);
+    const personId = extractPersonIdFromInput(cleanInput);
     const imdbId = extractImdbPersonId(cleanInput);
 
     if (personId) {
@@ -61,9 +68,12 @@ export async function checkTmdbPersonPhoto(input: string): Promise<TmdbPersonPho
   }
 }
 
-function extractPersonIdFromUrl(input: string): number | null {
-  const match = input.match(/themoviedb\.org\/person\/(\d+)/);
-  return match ? Number(match[1]) : null;
+function extractPersonIdFromInput(input: string): number | null {
+  const tmdbUrlMatch = input.match(/themoviedb\.org\/person\/(\d+)/);
+  if (tmdbUrlMatch) return Number(tmdbUrlMatch[1]);
+
+  const directIdMatch = input.trim().match(/^(\d+)(?:-[a-z0-9-]+)?$/i);
+  return directIdMatch ? Number(directIdMatch[1]) : null;
 }
 
 function extractImdbPersonId(input: string): string | null {
@@ -159,11 +169,11 @@ async function searchAndFetchPerson(name: string, token: string): Promise<TmdbPe
 
 function getMockResponse(input: string): TmdbPersonPhotoCheck {
   const cleanInput = input.trim();
-  const personId = extractPersonIdFromUrl(cleanInput);
+  const personId = extractPersonIdFromInput(cleanInput);
   const imdbId = extractImdbPersonId(cleanInput);
-  const nameFromUrl = personId
+  const nameFromUrl = personId && cleanInput.includes('/person/')
     ? cleanInput.split('/person/')[1]?.split('-').slice(1).join(' ')
-    : cleanInput;
+    : cleanInput.replace(/^\d+-?/, '');
 
   return {
     personId: personId || undefined,
@@ -171,7 +181,7 @@ function getMockResponse(input: string): TmdbPersonPhotoCheck {
     hasProfilePhoto: false,
     profileImageCount: 0,
     checkedAt: Date.now(),
-    error: 'No TMDB API credential configured. Use the settings button to save one in this browser.',
+    error: 'No TMDB API credential configured. Use the API button to save one in this browser.',
   };
 }
 
