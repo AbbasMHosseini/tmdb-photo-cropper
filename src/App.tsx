@@ -8,11 +8,12 @@ import { PersonCheckPanel, type PersonCheckPanelHandle } from './components/Pers
 import { SearchHistoryPanel } from './components/SearchHistoryPanel';
 import { downloadCanvasAsJpg, EXPORT_SIZES, safeFilename, type ExportSize } from './lib/imageExport';
 import { clearPersonSearchHistory, loadPersonSearchHistory, savePersonSearchToHistory, type PersonSearchHistoryItem } from './lib/searchHistory';
-import type { TmdbPersonPhotoCheck } from './lib/tmdb';
+import { buildTmdbPersonInput, type TmdbPersonPhotoCheck } from './lib/tmdb';
 
 export default function App() {
   const cropCanvasRef = useRef<CropCanvasHandle | null>(null);
   const personCheckRef = useRef<PersonCheckPanelHandle | null>(null);
+  const hasHandledInitialRouteRef = useRef(false);
   const [imageSource, setImageSource] = useState<string | null>(null);
   const [personName, setPersonName] = useState('person');
   const [tmdbPersonId, setTmdbPersonId] = useState<number | undefined>();
@@ -32,6 +33,17 @@ export default function App() {
     localStorage.setItem('tmdb_cropper_theme', theme);
   }, [theme]);
 
+  useEffect(() => {
+    if (hasHandledInitialRouteRef.current) return;
+    if (!personCheckRef.current) return;
+
+    const routeInput = getPersonInputFromUrl();
+    if (!routeInput) return;
+
+    hasHandledInitialRouteRef.current = true;
+    personCheckRef.current.searchPerson(routeInput, false);
+  }, [tokenRefreshKey]);
+
   function handleExport() {
     const canvas = cropCanvasRef.current?.renderToCanvas();
     if (!canvas) return;
@@ -46,12 +58,20 @@ export default function App() {
   function handleCheckComplete(result: TmdbPersonPhotoCheck, fallbackName: string) {
     setTmdbPersonId(result.personId);
     setHistory(savePersonSearchToHistory(result, fallbackName));
+
+    if (result.personId && result.name) {
+      window.history.replaceState(null, '', getAppUrlPath(result.personId, result.name));
+    }
   }
 
   function handleHistorySelect(item: PersonSearchHistoryItem) {
     setPersonName(item.name);
     setTmdbPersonId(item.personId);
     personCheckRef.current?.loadCachedPerson(item);
+
+    if (item.personId) {
+      window.history.replaceState(null, '', getAppUrlPath(item.personId, item.name));
+    }
   }
 
   return (
@@ -143,4 +163,28 @@ export default function App() {
       <ApiSettingsPanel onTokenChange={() => setTokenRefreshKey((current) => current + 1)} />
     </main>
   );
+}
+
+function getPersonInputFromUrl() {
+  const basePath = '/tmdb-photo-cropper';
+  const path = window.location.pathname;
+  const routePart = path.startsWith(basePath) ? path.slice(basePath.length) : path;
+  const cleanRoute = decodeURIComponent(routePart).replace(/^\/+|\/+$/g, '');
+
+  if (!cleanRoute || cleanRoute === 'index.html') return null;
+  return buildTmdbPersonInput(cleanRoute);
+}
+
+function getAppUrlPath(personId: number, name: string) {
+  return `/tmdb-photo-cropper/${personId}-${toUrlSlug(name)}`;
+}
+
+function toUrlSlug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
