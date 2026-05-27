@@ -166,8 +166,14 @@ export default function App() {
 }
 
 function getPersonInputFromUrl() {
+  const redirectedPath = sessionStorage.getItem('tmdb_cropper_redirect_path');
+  if (redirectedPath) {
+    sessionStorage.removeItem('tmdb_cropper_redirect_path');
+    window.history.replaceState(null, '', redirectedPath);
+  }
+
   const basePath = '/tmdb-photo-cropper';
-  const path = window.location.pathname;
+  const path = redirectedPath ? redirectedPath.split(/[?#]/)[0] : window.location.pathname;
   const routePart = path.startsWith(basePath) ? path.slice(basePath.length) : path;
   const cleanRoute = decodeURIComponent(routePart).replace(/^\/+|\/+$/g, '');
 
