@@ -114,10 +114,12 @@ export async function checkTmdbPersonPhoto(input: string): Promise<TmdbPersonPho
 
 export async function lookupTmdbMovie(input: string): Promise<TmdbMovieLookupResponse> {
   const token = getTmdbApiToken();
+  const cleanInput = input.trim();
+  const movieId = extractMovieIdFromInput(cleanInput);
   const candidates = buildMovieLookupCandidates(input);
   const primaryCandidate = candidates[0];
 
-  if (!primaryCandidate?.title) {
+  if (!cleanInput) {
     return {
       queryTitle: '',
       queryDirector: '',
@@ -128,14 +130,32 @@ export async function lookupTmdbMovie(input: string): Promise<TmdbMovieLookupRes
 
   if (!token) {
     return {
-      queryTitle: primaryCandidate.title,
-      queryDirector: primaryCandidate.director,
+      queryTitle: primaryCandidate?.title || cleanInput,
+      queryDirector: primaryCandidate?.director,
       results: [],
       error: 'No TMDB API credential configured. Use the API button to save one in this browser.',
     };
   }
 
   try {
+    if (movieId) {
+      const movie = await fetchMovieLookupById(movieId, token);
+      return {
+        queryTitle: movie.title,
+        queryDirector: '',
+        results: [movie],
+      };
+    }
+
+    if (!primaryCandidate?.title) {
+      return {
+        queryTitle: '',
+        queryDirector: '',
+        results: [],
+        error: 'Enter a film title first.',
+      };
+    }
+
     const collected = new Map<number, TmdbMovieLookupResult>();
     let bestQueryTitle = primaryCandidate.title;
     let bestQueryDirector = primaryCandidate.director;
@@ -186,8 +206,8 @@ export async function lookupTmdbMovie(input: string): Promise<TmdbMovieLookupRes
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return {
-      queryTitle: primaryCandidate.title,
-      queryDirector: primaryCandidate.director,
+      queryTitle: primaryCandidate?.title || cleanInput,
+      queryDirector: primaryCandidate?.director,
       results: [],
       error: `Failed to search TMDB movies: ${errorMessage}`,
     };
@@ -229,6 +249,12 @@ function buildMovieLookupCandidates(input: string): MovieLookupCandidate[] {
   });
 
   return Array.from(uniqueCandidates.values()).filter((candidate) => candidate.title.length > 0);
+}
+
+async function fetchMovieLookupById(movieId: number, token: string): Promise<TmdbMovieLookupResult> {
+  const movie = await tmdbFetch(`/movie/${movieId}`, token);
+  const title = String(movie.title || movie.name || movieId);
+  return hydrateMovieResult(movie, { title, director: '', score: 130 }, token);
 }
 
 async function hydrateMovieResult(
@@ -294,6 +320,17 @@ function directorMatches(name: unknown, queryDirector?: string) {
   const normalizedName = normalizeName(String(name || ''));
   const normalizedQuery = normalizeName(queryDirector);
   return normalizedName === normalizedQuery || normalizedName.includes(normalizedQuery) || normalizedQuery.includes(normalizedName);
+}
+
+function extractMovieIdFromInput(input: string): number | null {
+  const tmdbUrlMatch = input.match(/themoviedb\.org\/movie\/(\d+)/);
+  if (tmdbUrlMatch) return Number(tmdbUrlMatch[1]);
+
+  const pathMatch = input.match(/^(?:movie|m)\/(\d+)(?:-[a-z0-9-]+)?$/i);
+  if (pathMatch) return Number(pathMatch[1]);
+
+  const directIdMatch = input.match(/^(\d+)(?:-[a-z0-9-]+)?$/i);
+  return directIdMatch ? Number(directIdMatch[1]) : null;
 }
 
 function extractPersonIdFromInput(input: string): number | null {
