@@ -8,6 +8,12 @@ export type TmdbPersonPhotoCheck = {
   error?: string;
 };
 
+export type TmdbDirector = {
+  id: number;
+  name: string;
+  matched: boolean;
+};
+
 export type TmdbMovieLookupResult = {
   movieId: number;
   title: string;
@@ -17,9 +23,8 @@ export type TmdbMovieLookupResult = {
   posterUrl?: string;
   posterLargeUrl?: string;
   tmdbMovieUrl: string;
-  posterPageUrl: string;
-  directorName?: string;
-  directorPersonId?: number;
+  imdbUrl?: string;
+  directors: TmdbDirector[];
   matchedDirector: boolean;
 };
 
@@ -29,6 +34,14 @@ export type TmdbMovieLookupResponse = {
   results: TmdbMovieLookupResult[];
   error?: string;
 };
+
+type MovieLookupCandidate = {
+  title: string;
+  director?: string;
+  score: number;
+};
+
+type TmdbMovieRecord = Record<string, any>;
 
 const TMDB_API_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w185';
@@ -67,10 +80,6 @@ export function buildTmdbMovieUrl(movieId: number, title?: string) {
   return `https://www.themoviedb.org/movie/${moviePath}`;
 }
 
-export function buildTmdbMoviePosterUrl(movieId: number, title?: string) {
-  return `${buildTmdbMovieUrl(movieId, title)}/images/posters`;
-}
-
 export async function checkTmdbPersonPhoto(input: string): Promise<TmdbPersonPhotoCheck> {
   const token = getTmdbApiToken();
 
@@ -104,12 +113,13 @@ export async function checkTmdbPersonPhoto(input: string): Promise<TmdbPersonPho
 
 export async function lookupTmdbMovie(input: string): Promise<TmdbMovieLookupResponse> {
   const token = getTmdbApiToken();
-  const parsed = parseMovieLookupInput(input);
+  const candidates = buildMovieLookupCandidates(input);
+  const primaryCandidate = candidates[0];
 
-  if (!parsed.title) {
+  if (!primaryCandidate?.title) {
     return {
       queryTitle: '',
-      queryDirector: parsed.director,
+      queryDirector: '',
       results: [],
       error: 'Enter a film title first.',
     };
@@ -117,88 +127,133 @@ export async function lookupTmdbMovie(input: string): Promise<TmdbMovieLookupRes
 
   if (!token) {
     return {
-      queryTitle: parsed.title,
-      queryDirector: parsed.director,
+      queryTitle: primaryCandidate.title,
+      queryDirector: primaryCandidate.director,
       results: [],
       error: 'No TMDB API credential configured. Use the API button to save one in this browser.',
     };
   }
 
   try {
-    const searchData = await tmdbFetch(`/search/movie?query=${encodeURIComponent(parsed.title)}`, token);
-    const movies = Array.isArray(searchData.results) ? searchData.results.slice(0, 8) : [];
+    const collected = new Map<number, TmdbMovieLookupResult>();
+    let bestQueryTitle = primaryCandidate.title;
+    let bestQueryDirector = primaryCandidate.director;
 
-    if (movies.length === 0) {
-      return {
-        queryTitle: parsed.title,
-        queryDirector: parsed.director,
-        results: [],
-        error: `No movie found matching "${parsed.title}"`,
-      };
+    for (const candidate of candidates) {
+      const searchData = await tmdbFetch(`/search/movie?query=${encodeURIComponent(candidate.title)}`, token);
+      const movies = Array.isArray(searchData.results) ? searchData.results.slice(0, 6) : [];
+
+      if (movies.length === 0) continue;
+
+      const hydratedResults = await Promise.all(
+        movies.map(async (movie: TmdbMovieRecord) => hydrateMovieResult(movie, candidate, token)),
+      );
+
+      hydratedResults.forEach((movie) => {
+        const existing = collected.get(movie.movieId);
+        if (!existing || Number(movie.matchedDirector) > Number(existing.matchedDirector)) {
+          collected.set(movie.movieId, movie);
+        }
+      });
+
+      const hasDirectorMatch = hydratedResults.some((movie) => movie.matchedDirector);
+      if (hasDirectorMatch) {
+        bestQueryTitle = candidate.title;
+        bestQueryDirector = candidate.director;
+        break;
+      }
+
+      if (collected.size >= 6 && candidate.score < 80) break;
     }
 
-    const hydratedResults = await Promise.all(
-      movies.map(async (movie: Record<string, any>) => hydrateMovieResult(movie, parsed.director, token)),
-    );
-
-    const sortedResults = hydratedResults
+    const results = Array.from(collected.values())
       .sort((a, b) => Number(b.matchedDirector) - Number(a.matchedDirector))
       .slice(0, 6);
 
+    if (results.length === 0) {
+      return {
+        queryTitle: primaryCandidate.title,
+        queryDirector: primaryCandidate.director,
+        results: [],
+        error: `No movie found matching "${input.trim()}"`,
+      };
+    }
+
     return {
-      queryTitle: parsed.title,
-      queryDirector: parsed.director,
-      results: sortedResults,
+      queryTitle: bestQueryTitle,
+      queryDirector: bestQueryDirector,
+      results,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return {
-      queryTitle: parsed.title,
-      queryDirector: parsed.director,
+      queryTitle: primaryCandidate.title,
+      queryDirector: primaryCandidate.director,
       results: [],
       error: `Failed to search TMDB movies: ${errorMessage}`,
     };
   }
 }
 
-function parseMovieLookupInput(input: string) {
+function buildMovieLookupCandidates(input: string): MovieLookupCandidate[] {
   const cleanInput = input.trim().replace(/\r\n/g, '\n');
-  if (!cleanInput) return { title: '', director: '' };
+  if (!cleanInput) return [];
 
   const firstLine = cleanInput.split('\n').find(Boolean) || cleanInput;
   const splitPatterns = [/\t+/, / {2,}/, /\s+\|\s+/, /\s+-\s+/];
+  const candidates: MovieLookupCandidate[] = [];
 
   for (const pattern of splitPatterns) {
     const parts = firstLine.split(pattern).map((part) => part.trim()).filter(Boolean);
     if (parts.length >= 2) {
-      return {
-        title: parts[0],
-        director: parts.slice(1).join(' '),
-      };
+      candidates.push({ title: parts[0], director: parts.slice(1).join(' '), score: 120 });
+      break;
     }
   }
 
-  return {
-    title: firstLine.trim(),
-    director: '',
-  };
+  const words = firstLine.split(/\s+/).map((word) => word.trim()).filter(Boolean);
+
+  if (words.length > 1) {
+    for (let index = Math.min(words.length - 1, 5); index >= 1; index -= 1) {
+      const title = words.slice(0, index).join(' ');
+      const director = words.slice(index).join(' ');
+      candidates.push({ title, director, score: 100 - Math.abs(index - 2) * 6 });
+    }
+  }
+
+  candidates.push({ title: firstLine.trim(), director: '', score: 70 });
+
+  const uniqueCandidates = new Map<string, MovieLookupCandidate>();
+  candidates.forEach((candidate) => {
+    const key = `${normalizeName(candidate.title)}|${normalizeName(candidate.director || '')}`;
+    if (!uniqueCandidates.has(key)) uniqueCandidates.set(key, candidate);
+  });
+
+  return Array.from(uniqueCandidates.values()).filter((candidate) => candidate.title.length > 0);
 }
 
 async function hydrateMovieResult(
-  movie: Record<string, any>,
-  queryDirector: string | undefined,
+  movie: TmdbMovieRecord,
+  candidate: MovieLookupCandidate,
   token: string,
 ): Promise<TmdbMovieLookupResult> {
-  const credits = await tmdbFetch(`/movie/${movie.id}/credits`, token);
+  const [credits, externalIds] = await Promise.all([
+    tmdbFetch(`/movie/${movie.id}/credits`, token),
+    tmdbFetch(`/movie/${movie.id}/external_ids`, token),
+  ]);
   const crew = Array.isArray(credits.crew) ? credits.crew : [];
-  const directors = crew.filter((person: Record<string, any>) => String(person.job || '').toLowerCase() === 'director');
-  const matchedDirector = findMatchingDirector(directors, queryDirector);
-  const fallbackDirector = directors[0];
-  const chosenDirector = matchedDirector || fallbackDirector;
+  const directors = crew
+    .filter((person: TmdbMovieRecord) => String(person.job || '').toLowerCase() === 'director')
+    .map((person: TmdbMovieRecord) => ({
+      id: Number(person.id),
+      name: String(person.name || 'Unknown director'),
+      matched: directorMatches(person.name, candidate.director),
+    }));
   const title = String(movie.title || movie.name || 'Untitled');
   const releaseYear = typeof movie.release_date === 'string' && movie.release_date.length >= 4
     ? movie.release_date.slice(0, 4)
     : undefined;
+  const imdbId = typeof externalIds.imdb_id === 'string' ? externalIds.imdb_id : undefined;
 
   return {
     movieId: Number(movie.id),
@@ -209,21 +264,17 @@ async function hydrateMovieResult(
     posterUrl: movie.poster_path ? `${TMDB_POSTER_BASE}${movie.poster_path}` : undefined,
     posterLargeUrl: movie.poster_path ? `${TMDB_POSTER_LARGE_BASE}${movie.poster_path}` : undefined,
     tmdbMovieUrl: buildTmdbMovieUrl(Number(movie.id), title),
-    posterPageUrl: buildTmdbMoviePosterUrl(Number(movie.id), title),
-    directorName: chosenDirector?.name,
-    directorPersonId: chosenDirector?.id,
-    matchedDirector: Boolean(matchedDirector),
+    imdbUrl: imdbId ? `https://www.imdb.com/title/${imdbId}/` : undefined,
+    directors,
+    matchedDirector: directors.some((director) => director.matched),
   };
 }
 
-function findMatchingDirector(directors: Array<Record<string, any>>, queryDirector?: string) {
-  if (!queryDirector) return undefined;
+function directorMatches(name: unknown, queryDirector?: string) {
+  if (!queryDirector) return false;
+  const normalizedName = normalizeName(String(name || ''));
   const normalizedQuery = normalizeName(queryDirector);
-
-  return directors.find((director) => {
-    const normalizedName = normalizeName(String(director.name || ''));
-    return normalizedName === normalizedQuery || normalizedName.includes(normalizedQuery) || normalizedQuery.includes(normalizedName);
-  });
+  return normalizedName === normalizedQuery || normalizedName.includes(normalizedQuery) || normalizedQuery.includes(normalizedName);
 }
 
 function extractPersonIdFromInput(input: string): number | null {
