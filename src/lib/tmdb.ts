@@ -266,7 +266,7 @@ async function hydrateMovieResult(
     tmdbMovieUrl: buildTmdbMovieUrl(Number(movie.id), title),
     imdbUrl: imdbId ? `https://www.imdb.com/title/${imdbId}/` : undefined,
     directors,
-    matchedDirector: directors.some((director) => director.matched),
+    matchedDirector: directors.some((director: TmdbDirector) => director.matched),
   };
 }
 
