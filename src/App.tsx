@@ -113,7 +113,7 @@ export default function App() {
   function handleFilmHistorySelect(item: FilmHistoryItem) {
     setLookupMode('film');
     setPendingFilmQuery(item.query);
-    window.history.replaceState(null, '', `/tmdb-photo-cropper/?${encodeURIComponent(item.query).replace(/%20/g, '+')}`);
+    window.history.replaceState(null, '', getFilmSearchUrl(item.query));
   }
 
   function handleLoadDirector(personId: number, name: string) {
@@ -126,7 +126,7 @@ export default function App() {
 
   function handleFilmSearchComplete(query: string, results: TmdbMovieLookupResult[]) {
     setFilmHistory(saveFilmHistory(query, results));
-    window.history.replaceState(null, '', `/tmdb-photo-cropper/?${encodeURIComponent(query).replace(/%20/g, '+')}`);
+    window.history.replaceState(null, '', getFilmSearchUrl(query));
   }
 
   return (
@@ -277,8 +277,9 @@ function getInitialSearchFromUrl(): { mode: 'person' | 'film'; input: string } |
     window.history.replaceState(null, '', redirectedPath);
   }
 
-  const searchText = getFilmQueryFromSearch(window.location.search);
-  if (searchText) return { mode: 'film', input: searchText };
+  const search = redirectedPath ? getSearchFromPath(redirectedPath) : window.location.search;
+  const typedSearch = getTypedSearchFromSearch(search);
+  if (typedSearch) return typedSearch;
 
   const basePath = '/tmdb-photo-cropper';
   const path = redirectedPath ? redirectedPath.split(/[?#]/)[0] : window.location.pathname;
@@ -289,14 +290,56 @@ function getInitialSearchFromUrl(): { mode: 'person' | 'film'; input: string } |
   return { mode: 'person', input: buildTmdbPersonInput(cleanRoute) };
 }
 
-function getFilmQueryFromSearch(search: string) {
+function getTypedSearchFromSearch(search: string): { mode: 'person' | 'film'; input: string } | null {
   if (!search || search === '?') return null;
+
   const raw = search.slice(1);
   const params = new URLSearchParams(search);
-  const namedValue = params.get('film') || params.get('movie') || params.get('q') || params.get('search');
-  if (namedValue) return namedValue.trim();
-  if (!raw.includes('=')) return decodeURIComponent(raw.replace(/\+/g, ' ')).trim();
+  const movieValue = getFirstParam(params, ['m', 'movie', 'film', 'q', 'search']);
+  const personValue = getFirstParam(params, ['p', 'person']);
+
+  if (movieValue) return { mode: 'film', input: movieValue };
+  if (personValue) return { mode: 'person', input: buildTmdbPersonInput(personValue) };
+
+  if (params.has('m')) {
+    const value = cleanRawQuery(raw.replace(/(^|&)m(&|$)/, '$1').replace(/&$/, ''));
+    return value ? { mode: 'film', input: value } : null;
+  }
+
+  if (params.has('p')) {
+    const value = cleanRawQuery(raw.replace(/(^|&)p(&|$)/, '$1').replace(/&$/, ''));
+    return value ? { mode: 'person', input: buildTmdbPersonInput(value) } : null;
+  }
+
+  if (!raw.includes('=')) {
+    const value = cleanRawQuery(raw);
+    return value ? { mode: 'film', input: value } : null;
+  }
+
   return null;
+}
+
+function getFirstParam(params: URLSearchParams, keys: string[]) {
+  for (const key of keys) {
+    const value = params.get(key);
+    if (value?.trim()) return value.trim();
+  }
+  return null;
+}
+
+function cleanRawQuery(value: string) {
+  return decodeURIComponent(value.replace(/\+/g, ' ')).trim();
+}
+
+function getSearchFromPath(path: string) {
+  const questionIndex = path.indexOf('?');
+  if (questionIndex === -1) return '';
+  const hashIndex = path.indexOf('#', questionIndex);
+  return hashIndex === -1 ? path.slice(questionIndex) : path.slice(questionIndex, hashIndex);
+}
+
+function getFilmSearchUrl(query: string) {
+  return `/tmdb-photo-cropper/?m=${encodeURIComponent(query).replace(/%20/g, '+')}`;
 }
 
 function saveFilmHistory(query: string, results: TmdbMovieLookupResult[]) {
