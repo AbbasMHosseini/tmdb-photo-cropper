@@ -41,8 +41,8 @@ export const FilmLookupPanel = forwardRef<FilmLookupPanelHandle, FilmLookupPanel
     setIsSearching(false);
   }
 
-  async function copyMovieId(movieId: number) {
-    await navigator.clipboard.writeText(String(movieId));
+  async function copyMovieUrl(movieId: number, tmdbMovieUrl: string) {
+    await navigator.clipboard.writeText(tmdbMovieUrl);
     setCopiedMovieId(movieId);
     window.setTimeout(() => setCopiedMovieId(null), 1500);
   }
@@ -121,12 +121,12 @@ export const FilmLookupPanel = forwardRef<FilmLookupPanelHandle, FilmLookupPanel
 
                   <button
                     type="button"
-                    onClick={() => copyMovieId(movie.movieId)}
+                    onClick={() => copyMovieUrl(movie.movieId, movie.tmdbMovieUrl)}
                     className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-sky-700/70 bg-sky-950/30 px-3 py-2 text-sm font-bold text-sky-100 shadow-sm shadow-sky-950/30 hover:border-sky-500 hover:bg-sky-900/40"
-                    title="Copy TMDB movie ID"
+                    title="Copy TMDB movie page URL"
                   >
                     {copiedMovieId === movie.movieId ? <Check className="h-4 w-4 text-emerald-300" /> : <Copy className="h-4 w-4" />}
-                    {copiedMovieId === movie.movieId ? 'Copied TMDB ID' : `TMDB ID: ${movie.movieId}`}
+                    TMDB ID: {movie.movieId}
                   </button>
 
                   <div className="mt-2 flex flex-wrap gap-2">
