@@ -3,17 +3,19 @@ import { Film } from 'lucide-react';
 import { ApiSettingsPanel } from './components/ApiSettingsPanel';
 import { CropCanvas, type CropCanvasHandle } from './components/CropCanvas';
 import { ExportControls } from './components/ExportControls';
+import { FilmLookupPanel } from './components/FilmLookupPanel';
 import { ImageDropzone } from './components/ImageDropzone';
 import { PersonCheckPanel, type PersonCheckPanelHandle } from './components/PersonCheckPanel';
 import { SearchHistoryPanel } from './components/SearchHistoryPanel';
 import { downloadCanvasAsJpg, EXPORT_SIZES, safeFilename, type ExportSize } from './lib/imageExport';
 import { clearPersonSearchHistory, loadPersonSearchHistory, savePersonSearchToHistory, type PersonSearchHistoryItem } from './lib/searchHistory';
-import { buildTmdbPersonInput, type TmdbPersonPhotoCheck } from './lib/tmdb';
+import { buildTmdbPersonInput, buildTmdbPersonUrl, type TmdbPersonPhotoCheck } from './lib/tmdb';
 
 export default function App() {
   const cropCanvasRef = useRef<CropCanvasHandle | null>(null);
   const personCheckRef = useRef<PersonCheckPanelHandle | null>(null);
   const hasHandledInitialRouteRef = useRef(false);
+  const [lookupMode, setLookupMode] = useState<'person' | 'film'>('person');
   const [imageSource, setImageSource] = useState<string | null>(null);
   const [personName, setPersonName] = useState('person');
   const [tmdbPersonId, setTmdbPersonId] = useState<number | undefined>();
@@ -41,6 +43,7 @@ export default function App() {
     if (!routeInput) return;
 
     hasHandledInitialRouteRef.current = true;
+    setLookupMode('person');
     personCheckRef.current.searchPerson(routeInput, false);
   }, [tokenRefreshKey]);
 
@@ -65,6 +68,7 @@ export default function App() {
   }
 
   function handleHistorySelect(item: PersonSearchHistoryItem) {
+    setLookupMode('person');
     setPersonName(item.name);
     setTmdbPersonId(item.personId);
     personCheckRef.current?.loadCachedPerson(item);
@@ -72,6 +76,14 @@ export default function App() {
     if (item.personId) {
       window.history.replaceState(null, '', getAppUrlPath(item.personId, item.name));
     }
+  }
+
+  function handleLoadDirector(personId: number, name: string) {
+    setLookupMode('person');
+    setPersonName(name);
+    setTmdbPersonId(personId);
+    window.history.replaceState(null, '', getAppUrlPath(personId, name));
+    personCheckRef.current?.searchPerson(buildTmdbPersonUrl(personId, name), false);
   }
 
   return (
@@ -114,12 +126,36 @@ export default function App() {
 
       <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[360px_1fr]">
         <aside className="space-y-5">
+          <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-800 bg-slate-950/70 p-2">
+            <button
+              type="button"
+              onClick={() => setLookupMode('person')}
+              className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                lookupMode === 'person' ? 'bg-sky-400 text-slate-950' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+              }`}
+            >
+              Person
+            </button>
+            <button
+              type="button"
+              onClick={() => setLookupMode('film')}
+              className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                lookupMode === 'film' ? 'bg-sky-400 text-slate-950' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+              }`}
+            >
+              Film
+            </button>
+          </div>
+
           <PersonCheckPanel
             key={tokenRefreshKey}
             ref={personCheckRef}
             onPersonResolved={setPersonName}
             onCheckComplete={handleCheckComplete}
           />
+
+          {lookupMode === 'film' && <FilmLookupPanel onLoadDirector={handleLoadDirector} />}
+
           <ImageDropzone
             onImageSelected={(source, fileName) => {
               setImageSource(source);
