@@ -61,7 +61,7 @@ export function ApiSettingsPanel({ onTokenChange }: ApiSettingsPanelProps) {
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
             <h2 className="mb-4 text-lg font-semibold text-slate-100">TMDB API Settings</h2>
 
             <div className="mb-4 rounded-lg border border-slate-700 bg-slate-950/70 p-3 text-sm text-slate-300">
@@ -77,6 +77,17 @@ export function ApiSettingsPanel({ onTokenChange }: ApiSettingsPanelProps) {
                 </a>
                 . Your credential is stored only in this browser.
               </p>
+            </div>
+
+            <div className="mb-4 rounded-lg border border-slate-700 bg-slate-950/70 p-3 text-xs leading-5 text-slate-300">
+              <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Link guide</div>
+              <div className="space-y-2">
+                <p><b className="text-slate-200">Film search:</b> <code className="text-sky-300">?m=American+Doctor+Poh+Si+Teng</code></p>
+                <p><b className="text-slate-200">Person search:</b> <code className="text-sky-300">?p=Asghar+Farhadi</code> or <code className="text-sky-300">?p=229931</code></p>
+                <p><b className="text-slate-200">Direct movie:</b> <code className="text-sky-300">/movie/251867-american-doctor</code></p>
+                <p><b className="text-slate-200">Direct person:</b> <code className="text-sky-300">/229931-asghar-farhadi</code></p>
+                <p className="text-slate-500">Film results show a large TMDB ID button. Click it to copy the movie ID.</p>
+              </div>
             </div>
 
             <div className="mb-4">
