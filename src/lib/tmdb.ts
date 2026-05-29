@@ -18,6 +18,7 @@ export type TmdbMovieLookupResult = {
   movieId: number;
   title: string;
   originalTitle?: string;
+  releaseDate?: string;
   releaseYear?: string;
   overview?: string;
   posterUrl?: string;
@@ -166,9 +167,7 @@ export async function lookupTmdbMovie(input: string): Promise<TmdbMovieLookupRes
       if (collected.size >= 6 && candidate.score < 80) break;
     }
 
-    const results = Array.from(collected.values())
-      .sort((a, b) => Number(b.matchedDirector) - Number(a.matchedDirector))
-      .slice(0, 6);
+    const results = sortMovieResults(Array.from(collected.values())).slice(0, 6);
 
     if (results.length === 0) {
       return {
@@ -250,15 +249,17 @@ async function hydrateMovieResult(
       matched: directorMatches(person.name, candidate.director),
     }));
   const title = String(movie.title || movie.name || 'Untitled');
-  const releaseYear = typeof movie.release_date === 'string' && movie.release_date.length >= 4
-    ? movie.release_date.slice(0, 4)
+  const releaseDate = typeof movie.release_date === 'string' && movie.release_date.length > 0
+    ? movie.release_date
     : undefined;
+  const releaseYear = releaseDate && releaseDate.length >= 4 ? releaseDate.slice(0, 4) : undefined;
   const imdbId = typeof externalIds.imdb_id === 'string' ? externalIds.imdb_id : undefined;
 
   return {
     movieId: Number(movie.id),
     title,
     originalTitle: movie.original_title,
+    releaseDate,
     releaseYear,
     overview: movie.overview,
     posterUrl: movie.poster_path ? `${TMDB_POSTER_BASE}${movie.poster_path}` : undefined,
@@ -268,6 +269,24 @@ async function hydrateMovieResult(
     directors,
     matchedDirector: directors.some((director: TmdbDirector) => director.matched),
   };
+}
+
+function sortMovieResults(results: TmdbMovieLookupResult[]) {
+  return [...results].sort((a, b) => {
+    const matchDiff = Number(b.matchedDirector) - Number(a.matchedDirector);
+    if (matchDiff !== 0) return matchDiff;
+
+    const dateDiff = getReleaseTime(b.releaseDate) - getReleaseTime(a.releaseDate);
+    if (dateDiff !== 0) return dateDiff;
+
+    return b.movieId - a.movieId;
+  });
+}
+
+function getReleaseTime(releaseDate?: string) {
+  if (!releaseDate) return 0;
+  const time = new Date(releaseDate).getTime();
+  return Number.isFinite(time) ? time : 0;
 }
 
 function directorMatches(name: unknown, queryDirector?: string) {
