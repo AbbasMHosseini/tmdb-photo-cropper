@@ -119,7 +119,17 @@ export const FilmLookupPanel = forwardRef<FilmLookupPanelHandle, FilmLookupPanel
 
                   {movie.overview && <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">{movie.overview}</p>}
 
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => copyMovieId(movie.movieId)}
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-sky-700/70 bg-sky-950/30 px-3 py-2 text-sm font-bold text-sky-100 shadow-sm shadow-sky-950/30 hover:border-sky-500 hover:bg-sky-900/40"
+                    title="Copy TMDB movie ID"
+                  >
+                    {copiedMovieId === movie.movieId ? <Check className="h-4 w-4 text-emerald-300" /> : <Copy className="h-4 w-4" />}
+                    {copiedMovieId === movie.movieId ? 'Copied TMDB ID' : `TMDB ID: ${movie.movieId}`}
+                  </button>
+
+                  <div className="mt-2 flex flex-wrap gap-2">
                     <a
                       href={movie.tmdbMovieUrl}
                       target="_blank"
@@ -140,15 +150,6 @@ export const FilmLookupPanel = forwardRef<FilmLookupPanelHandle, FilmLookupPanel
                         IMDb
                       </a>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => copyMovieId(movie.movieId)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-950 px-2 py-1 text-xs font-semibold text-slate-300 hover:border-slate-500"
-                      title="Copy TMDB movie ID"
-                    >
-                      {copiedMovieId === movie.movieId ? <Check className="h-3.5 w-3.5 text-emerald-300" /> : <Copy className="h-3.5 w-3.5" />}
-                      TMDB ID: {movie.movieId}
-                    </button>
                   </div>
 
                   {movie.directors.length > 0 && (
