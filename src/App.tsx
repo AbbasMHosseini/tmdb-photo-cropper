@@ -112,8 +112,8 @@ export default function App() {
 
   function handleFilmHistorySelect(item: FilmHistoryItem) {
     setLookupMode('film');
-    setPendingFilmQuery(item.query);
-    window.history.replaceState(null, '', getFilmSearchUrl(item.query));
+    setPendingFilmQuery(`movie/${item.movieId}`);
+    window.history.replaceState(null, '', getMovieAppUrl(item.movieId, item.title));
   }
 
   function handleLoadDirector(personId: number, name: string) {
@@ -126,7 +126,8 @@ export default function App() {
 
   function handleFilmSearchComplete(query: string, results: TmdbMovieLookupResult[]) {
     setFilmHistory(saveFilmHistory(query, results));
-    window.history.replaceState(null, '', getFilmSearchUrl(query));
+    const firstResult = results[0];
+    window.history.replaceState(null, '', firstResult ? getMovieAppUrl(firstResult.movieId, firstResult.title) : getFilmSearchUrl(query));
   }
 
   return (
@@ -287,6 +288,7 @@ function getInitialSearchFromUrl(): { mode: 'person' | 'film'; input: string } |
   const cleanRoute = decodeURIComponent(routePart).replace(/^\/+|\/+$/g, '');
 
   if (!cleanRoute || cleanRoute === 'index.html') return null;
+  if (/^(movie|m)\/\d+/i.test(cleanRoute)) return { mode: 'film', input: cleanRoute };
   return { mode: 'person', input: buildTmdbPersonInput(cleanRoute) };
 }
 
@@ -340,6 +342,10 @@ function getSearchFromPath(path: string) {
 
 function getFilmSearchUrl(query: string) {
   return `/tmdb-photo-cropper/?m=${encodeURIComponent(query).replace(/%20/g, '+')}`;
+}
+
+function getMovieAppUrl(movieId: number, title: string) {
+  return `/tmdb-photo-cropper/movie/${movieId}-${toUrlSlug(title)}`;
 }
 
 function saveFilmHistory(query: string, results: TmdbMovieLookupResult[]) {
