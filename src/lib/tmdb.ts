@@ -293,11 +293,16 @@ async function searchMoviesByDirectorCredits(candidate: MovieLookupCandidate, to
 
     const credits = await tmdbFetch(`/person/${personId}/movie_credits`, token);
     const crew = Array.isArray(credits.crew) ? credits.crew : [];
-
-    crew
+    const directedMovies = crew
       .filter((movie: TmdbMovieRecord) => String(movie.job || '').toLowerCase() === 'director')
-      .filter((movie: TmdbMovieRecord) => movieTitleMatches(movie, candidate.title))
-      .forEach((movie: TmdbMovieRecord) => matchedMovies.set(Number(movie.id), movie));
+      .slice(0, 40);
+
+    for (const movie of directedMovies) {
+      if (matchedMovies.size >= 6) break;
+      if (await movieTitleMatchesWithMetadata(movie, candidate.title, token)) {
+        matchedMovies.set(Number(movie.id), movie);
+      }
+    }
   }
 
   const movies = Array.from(matchedMovies.values()).slice(0, 6);
@@ -373,10 +378,45 @@ function movieTitleMatches(movie: TmdbMovieRecord, queryTitle: string) {
   const query = normalizeTitle(queryTitle);
   if (!query) return false;
 
-  return getMovieTitleValues(movie).some((title) => {
-    const normalizedTitle = normalizeTitle(title);
-    return normalizedTitle === query || normalizedTitle.includes(query) || query.includes(normalizedTitle);
-  });
+  return getMovieTitleValues(movie).some((title) => titleMatchesQuery(title, query));
+}
+
+async function movieTitleMatchesWithMetadata(movie: TmdbMovieRecord, queryTitle: string, token: string) {
+  if (movieTitleMatches(movie, queryTitle)) return true;
+
+  const movieId = Number(movie.id);
+  if (!movieId) return false;
+
+  const query = normalizeTitle(queryTitle);
+  if (!query) return false;
+
+  const [alternativeTitlesResult, translationsResult] = await Promise.allSettled([
+    tmdbFetch(`/movie/${movieId}/alternative_titles`, token),
+    tmdbFetch(`/movie/${movieId}/translations`, token),
+  ]);
+
+  const titles: string[] = [];
+
+  if (alternativeTitlesResult.status === 'fulfilled') {
+    const alternativeTitles = Array.isArray(alternativeTitlesResult.value.titles) ? alternativeTitlesResult.value.titles : [];
+    alternativeTitles.forEach((item: TmdbMovieRecord) => {
+      if (typeof item.title === 'string') titles.push(item.title);
+    });
+  }
+
+  if (translationsResult.status === 'fulfilled') {
+    const translations = Array.isArray(translationsResult.value.translations) ? translationsResult.value.translations : [];
+    translations.forEach((item: TmdbMovieRecord) => {
+      if (typeof item.data?.title === 'string') titles.push(item.data.title);
+    });
+  }
+
+  return titles.some((title) => titleMatchesQuery(title, query));
+}
+
+function titleMatchesQuery(title: string, normalizedQuery: string) {
+  const normalizedTitle = normalizeTitle(title);
+  return normalizedTitle === normalizedQuery || normalizedTitle.includes(normalizedQuery) || normalizedQuery.includes(normalizedTitle);
 }
 
 function getMovieTitleValues(movie: TmdbMovieRecord) {
