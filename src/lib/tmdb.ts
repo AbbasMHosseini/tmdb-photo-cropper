@@ -36,6 +36,8 @@ export type TmdbMovieLookupResponse = {
   error?: string;
 };
 
+export type TmdbAccessMode = 'direct' | 'proxy';
+
 type MovieLookupCandidate = {
   title: string;
   director?: string;
@@ -45,21 +47,29 @@ type MovieLookupCandidate = {
 type TmdbMovieRecord = Record<string, any>;
 
 const TMDB_API_BASE = 'https://api.themoviedb.org/3';
-const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w185';
-const TMDB_POSTER_BASE = 'https://image.tmdb.org/t/p/w342';
-const TMDB_POSTER_LARGE_BASE = 'https://image.tmdb.org/t/p/w780';
-const STORAGE_KEY = 'tmdb_api_token';
+const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p';
+const TMDB_PROXY_BASE = 'https://tmdb.nnapub.com';
+const TOKEN_STORAGE_KEY = 'tmdb_api_token';
+const ACCESS_MODE_STORAGE_KEY = 'tmdb_access_mode';
 
 export function getTmdbApiToken(): string | null {
-  return localStorage.getItem(STORAGE_KEY);
+  return localStorage.getItem(TOKEN_STORAGE_KEY);
 }
 
 export function setTmdbApiToken(token: string): void {
-  localStorage.setItem(STORAGE_KEY, token.trim());
+  localStorage.setItem(TOKEN_STORAGE_KEY, token.trim());
 }
 
 export function clearTmdbApiToken(): void {
-  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(TOKEN_STORAGE_KEY);
+}
+
+export function getTmdbAccessMode(): TmdbAccessMode {
+  return localStorage.getItem(ACCESS_MODE_STORAGE_KEY) === 'proxy' ? 'proxy' : 'direct';
+}
+
+export function setTmdbAccessMode(mode: TmdbAccessMode): void {
+  localStorage.setItem(ACCESS_MODE_STORAGE_KEY, mode);
 }
 
 export function buildTmdbPersonUrl(personId: number, name?: string) {
@@ -83,8 +93,9 @@ export function buildTmdbMovieUrl(movieId: number, title?: string) {
 
 export async function checkTmdbPersonPhoto(input: string): Promise<TmdbPersonPhotoCheck> {
   const token = getTmdbApiToken();
+  const accessMode = getTmdbAccessMode();
 
-  if (!token) {
+  if (!token && accessMode === 'direct') {
     return getMockResponse(input);
   }
 
@@ -114,6 +125,7 @@ export async function checkTmdbPersonPhoto(input: string): Promise<TmdbPersonPho
 
 export async function lookupTmdbMovie(input: string): Promise<TmdbMovieLookupResponse> {
   const token = getTmdbApiToken();
+  const accessMode = getTmdbAccessMode();
   const cleanInput = input.trim();
   const movieId = extractMovieIdFromInput(cleanInput);
   const candidates = buildMovieLookupCandidates(input);
@@ -128,12 +140,12 @@ export async function lookupTmdbMovie(input: string): Promise<TmdbMovieLookupRes
     };
   }
 
-  if (!token) {
+  if (!token && accessMode === 'direct') {
     return {
       queryTitle: primaryCandidate?.title || cleanInput,
       queryDirector: primaryCandidate?.director,
       results: [],
-      error: 'No TMDB API credential configured. Use the API button to save one in this browser.',
+      error: 'No TMDB API credential configured. Use the API button to save one in this browser, or choose proxy mode.',
     };
   }
 
@@ -251,7 +263,7 @@ function buildMovieLookupCandidates(input: string): MovieLookupCandidate[] {
   return Array.from(uniqueCandidates.values()).filter((candidate) => candidate.title.length > 0);
 }
 
-async function fetchMovieLookupById(movieId: number, token: string): Promise<TmdbMovieLookupResult> {
+async function fetchMovieLookupById(movieId: number, token: string | null): Promise<TmdbMovieLookupResult> {
   const movie = await tmdbFetch(`/movie/${movieId}`, token);
   const title = String(movie.title || movie.name || movieId);
   return hydrateMovieResult(movie, { title, director: '', score: 130 }, token);
@@ -260,7 +272,7 @@ async function fetchMovieLookupById(movieId: number, token: string): Promise<Tmd
 async function hydrateMovieResult(
   movie: TmdbMovieRecord,
   candidate: MovieLookupCandidate,
-  token: string,
+  token: string | null,
 ): Promise<TmdbMovieLookupResult> {
   const [credits, externalIds] = await Promise.all([
     tmdbFetch(`/movie/${movie.id}/credits`, token),
@@ -288,13 +300,19 @@ async function hydrateMovieResult(
     releaseDate,
     releaseYear,
     overview: movie.overview,
-    posterUrl: movie.poster_path ? `${TMDB_POSTER_BASE}${movie.poster_path}` : undefined,
-    posterLargeUrl: movie.poster_path ? `${TMDB_POSTER_LARGE_BASE}${movie.poster_path}` : undefined,
+    posterUrl: movie.poster_path ? buildTmdbImageUrl('w342', movie.poster_path) : undefined,
+    posterLargeUrl: movie.poster_path ? buildTmdbImageUrl('w780', movie.poster_path) : undefined,
     tmdbMovieUrl: buildTmdbMovieUrl(Number(movie.id), title),
     imdbUrl: imdbId ? `https://www.imdb.com/title/${imdbId}/` : undefined,
     directors,
     matchedDirector: directors.some((director: TmdbDirector) => director.matched),
   };
+}
+
+function buildTmdbImageUrl(size: string, path: string) {
+  const cleanPath = path.replace(/^\/+/, '');
+  if (getTmdbAccessMode() === 'proxy') return `${TMDB_PROXY_BASE}/image/${size}/${cleanPath}`;
+  return `${TMDB_IMAGE_BASE}/${size}/${cleanPath}`;
 }
 
 function sortMovieResults(results: TmdbMovieLookupResult[]) {
@@ -350,10 +368,23 @@ function isReadAccessToken(token: string) {
   return token.startsWith('eyJ') || token.length > 80;
 }
 
-async function tmdbFetch(path: string, token: string) {
+async function tmdbFetch(path: string, token: string | null) {
+  const accessMode = getTmdbAccessMode();
   const cacheBuster = `_=${Date.now()}`;
   const separator = path.includes('?') ? '&' : '?';
   const pathWithCacheBuster = `${path}${separator}${cacheBuster}`;
+
+  if (accessMode === 'proxy') {
+    const response = await fetch(`${TMDB_PROXY_BASE}/tmdb${pathWithCacheBuster}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' },
+    });
+    if (!response.ok) throw new Error(`TMDB proxy request failed (${response.status})`);
+    return response.json();
+  }
+
+  if (!token) throw new Error('No TMDB API credential configured.');
+
   const authSeparator = pathWithCacheBuster.includes('?') ? '&' : '?';
   const url = isReadAccessToken(token)
     ? `${TMDB_API_BASE}${pathWithCacheBuster}`
@@ -382,7 +413,7 @@ async function tmdbFetch(path: string, token: string) {
   return response.json();
 }
 
-async function fetchPersonDetails(personId: number, token: string): Promise<TmdbPersonPhotoCheck> {
+async function fetchPersonDetails(personId: number, token: string | null): Promise<TmdbPersonPhotoCheck> {
   const [person, images] = await Promise.all([
     tmdbFetch(`/person/${personId}`, token),
     tmdbFetch(`/person/${personId}/images`, token),
@@ -397,12 +428,12 @@ async function fetchPersonDetails(personId: number, token: string): Promise<Tmdb
     name: person.name,
     hasProfilePhoto: profileCount > 0,
     profileImageCount: profileCount,
-    existingProfileUrl: firstProfilePath ? `${TMDB_IMAGE_BASE}${firstProfilePath}` : undefined,
+    existingProfileUrl: firstProfilePath ? buildTmdbImageUrl('w185', firstProfilePath) : undefined,
     checkedAt: Date.now(),
   };
 }
 
-async function findPersonByImdbId(imdbId: string, token: string): Promise<TmdbPersonPhotoCheck> {
+async function findPersonByImdbId(imdbId: string, token: string | null): Promise<TmdbPersonPhotoCheck> {
   const findData = await tmdbFetch(`/find/${imdbId}?external_source=imdb_id`, token);
   const personResults = Array.isArray(findData.person_results) ? findData.person_results : [];
 
@@ -417,7 +448,7 @@ async function findPersonByImdbId(imdbId: string, token: string): Promise<TmdbPe
   return fetchPersonDetails(personResults[0].id, token);
 }
 
-async function searchAndFetchPerson(name: string, token: string): Promise<TmdbPersonPhotoCheck> {
+async function searchAndFetchPerson(name: string, token: string | null): Promise<TmdbPersonPhotoCheck> {
   const searchData = await tmdbFetch(`/search/person?query=${encodeURIComponent(name)}`, token);
   const results = Array.isArray(searchData.results) ? searchData.results : [];
 
