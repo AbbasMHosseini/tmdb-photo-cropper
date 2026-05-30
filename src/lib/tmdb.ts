@@ -187,6 +187,24 @@ export async function lookupTmdbMovie(input: string): Promise<TmdbMovieLookupRes
       if (collected.size >= 6 && candidate.score < 80) break;
     }
 
+    if (!Array.from(collected.values()).some((movie) => movie.matchedDirector)) {
+      for (const candidate of candidates.filter((item) => item.director)) {
+        const directorCreditResults = await searchMoviesByDirectorCredits(candidate, token);
+        directorCreditResults.forEach((movie) => {
+          const existing = collected.get(movie.movieId);
+          if (!existing || Number(movie.matchedDirector) > Number(existing.matchedDirector)) {
+            collected.set(movie.movieId, movie);
+          }
+        });
+
+        if (directorCreditResults.some((movie) => movie.matchedDirector)) {
+          bestQueryTitle = candidate.title;
+          bestQueryDirector = candidate.director;
+          break;
+        }
+      }
+    }
+
     const results = sortMovieResults(Array.from(collected.values())).slice(0, 6);
 
     if (results.length === 0) {
@@ -257,6 +275,35 @@ async function fetchMovieLookupById(movieId: number, token: string): Promise<Tmd
   return hydrateMovieResult(movie, { title, director: '', score: 130 }, token);
 }
 
+async function searchMoviesByDirectorCredits(candidate: MovieLookupCandidate, token: string): Promise<TmdbMovieLookupResult[]> {
+  if (!candidate.director) return [];
+
+  const personSearch = await tmdbFetch(`/search/person?query=${encodeURIComponent(candidate.director)}`, token);
+  const people = Array.isArray(personSearch.results) ? personSearch.results.slice(0, 5) : [];
+  const likelyDirectors = people
+    .filter((person: TmdbMovieRecord) => directorMatches(person.name, candidate.director))
+    .slice(0, 3);
+
+  const peopleToCheck = likelyDirectors.length > 0 ? likelyDirectors : people.slice(0, 2);
+  const matchedMovies = new Map<number, TmdbMovieRecord>();
+
+  for (const person of peopleToCheck) {
+    const personId = Number(person.id);
+    if (!personId) continue;
+
+    const credits = await tmdbFetch(`/person/${personId}/movie_credits`, token);
+    const crew = Array.isArray(credits.crew) ? credits.crew : [];
+
+    crew
+      .filter((movie: TmdbMovieRecord) => String(movie.job || '').toLowerCase() === 'director')
+      .filter((movie: TmdbMovieRecord) => movieTitleMatches(movie, candidate.title))
+      .forEach((movie: TmdbMovieRecord) => matchedMovies.set(Number(movie.id), movie));
+  }
+
+  const movies = Array.from(matchedMovies.values()).slice(0, 6);
+  return Promise.all(movies.map((movie) => hydrateMovieResult(movie, candidate, token)));
+}
+
 async function hydrateMovieResult(
   movie: TmdbMovieRecord,
   candidate: MovieLookupCandidate,
@@ -320,6 +367,25 @@ function directorMatches(name: unknown, queryDirector?: string) {
   const normalizedName = normalizeName(String(name || ''));
   const normalizedQuery = normalizeName(queryDirector);
   return normalizedName === normalizedQuery || normalizedName.includes(normalizedQuery) || normalizedQuery.includes(normalizedName);
+}
+
+function movieTitleMatches(movie: TmdbMovieRecord, queryTitle: string) {
+  const query = normalizeTitle(queryTitle);
+  if (!query) return false;
+
+  return getMovieTitleValues(movie).some((title) => {
+    const normalizedTitle = normalizeTitle(title);
+    return normalizedTitle === query || normalizedTitle.includes(query) || query.includes(normalizedTitle);
+  });
+}
+
+function getMovieTitleValues(movie: TmdbMovieRecord) {
+  return [movie.title, movie.original_title, movie.name, movie.original_name]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+}
+
+function normalizeTitle(value: string) {
+  return normalizeName(value).replace(/^(the|a|an|le|la|les|l|el|al|il|lo|gli|i|der|die|das|des|du|de)/, '');
 }
 
 function extractMovieIdFromInput(input: string): number | null {
