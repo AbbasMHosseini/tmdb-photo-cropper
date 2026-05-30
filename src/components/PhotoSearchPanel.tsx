@@ -5,7 +5,7 @@ interface PhotoSearchPanelProps {
 }
 
 function openImageSearch(engine: 'google' | 'bing', personName: string) {
-  const query = `${personName} photos`;
+  const query = `${personName} filmmaker portrait`;
   const url =
     engine === 'google'
       ? `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=isch`
